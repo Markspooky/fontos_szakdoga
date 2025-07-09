@@ -43,6 +43,7 @@
             android:orientation="vertical"
             android:padding="16dp"
             android:gravity="center_horizontal" />
+
     </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
