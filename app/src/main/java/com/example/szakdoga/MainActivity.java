@@ -1,8 +1,6 @@
 package com.example.szakdoga;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 
@@ -14,7 +12,6 @@ import androidx.core.view.WindowInsetsCompat;
 
 public class MainActivity extends AppCompatActivity {
 
-    static final String ACTION_TIMETRAVEL = "com.example.action.TIMETRAVEL";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,7 +28,11 @@ public class MainActivity extends AppCompatActivity {
 
     public void loggingIn(View view) {
         Intent intent = new Intent(MainActivity.this, LoggedIn.class);
-        intent.putExtra("SECRET_KEY",420);
+        startActivity(intent);
+
+    }
+    public void pdfOpen(View view) {
+        Intent intent = new Intent(MainActivity.this, PDFOpen.class);
         startActivity(intent);
 
     }
@@ -41,25 +42,30 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        System.out.println("start");
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        System.out.println("stop");
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        System.out.println("destroy");
     }
 
     @Override
     protected void onPause() {
       super.onPause();
+        System.out.println("pause");
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        System.out.println("resume");
     }
 }
