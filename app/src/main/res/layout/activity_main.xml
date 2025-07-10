@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
@@ -7,21 +8,41 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity"
     android:background="@color/beige"
-    style="@style/Bars">
+    android:padding="24dp">
 
     <Button
         android:id="@+id/belepes"
-        android:layout_width="175dp"
-        android:layout_height="125dp"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="156dp"
+        android:elevation="6dp"
         android:onClick="loggingIn"
-        android:text="Belepes"
+        android:paddingVertical="20dp"
+        android:text="Belépés"
         android:textColor="@color/black"
-        android:textSize="35sp"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:textSize="24sp"
         app:layout_constraintEnd_toEndOf="parent"
-        android:backgroundTint="#FFF8DC"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
+        android:backgroundTint="#FFF8DC"
         />
+
+    <Button
+        android:id="@+id/pdfek"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="120dp"
+        android:backgroundTint="#FFF8DC"
+        android:elevation="6dp"
+        android:onClick="pdfOpen"
+        android:paddingVertical="20dp"
+        android:text="PDF-ek megtekintése"
+        android:textColor="@color/black"
+        android:textSize="20sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/belepes" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
