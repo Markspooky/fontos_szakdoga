@@ -2,16 +2,26 @@ package com.example.szakdoga;
 
 import static android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.util.Log;
 import android.widget.Toast;
+
+import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.example.szakdoga.databinding.PdfopenPageBinding;
 import com.rajat.pdfviewer.PdfRendererView;
@@ -20,6 +30,7 @@ import com.rajat.pdfviewer.util.CacheStrategy;
 import com.rajat.pdfviewer.util.ToolbarTitleBehavior;
 import com.rajat.pdfviewer.util.saveTo;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -37,29 +48,64 @@ public class PDFOpen extends AppCompatActivity {
             "https://css4.pub/2015/textbook/somatosensory.pdf"
     );
 
+
+
+    //A letoltesek mappaban turkalo filekereso
+    @SuppressLint("Range")
     private final ActivityResultLauncher<Intent> filePicker = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                     Uri uri = result.getData().getData();
-                    if (uri != null) {
-                        try {
-                            final int takeFlags = result.getData().getFlags()
-                                    & (Intent.FLAG_GRANT_READ_URI_PERMISSION | FLAG_GRANT_WRITE_URI_PERMISSION);
-                            getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION | FLAG_GRANT_WRITE_URI_PERMISSION);
-                        } catch (SecurityException e) {
-                            e.printStackTrace();
-                            Toast.makeText(this, "Engedély nem sikerült!", Toast.LENGTH_SHORT).show();
+                    assert uri != null;
+                    String uriString = uri.toString();
+                    File myFile = new File(uriString);
+                    String path = myFile.getAbsolutePath();
+                    String displayName = null;
+                    try {
+                        final int takeFlags = result.getData().getFlags()
+                                & (Intent.FLAG_GRANT_READ_URI_PERMISSION | FLAG_GRANT_WRITE_URI_PERMISSION);
+                        //A pdf megnyitas engedelyezese
+                        getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION | FLAG_GRANT_WRITE_URI_PERMISSION);
+                        if (uriString.startsWith("content://")) {
+                            Cursor cursor = null;
+                            try {
+                                cursor = getActivity().getContentResolver().query(uri, null, null, null, null);
+                                if (cursor != null && cursor.moveToFirst()) {
+                                    displayName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                                }
+                            } finally {
+                                assert cursor != null;
+                                cursor.close();
+                            }
+                        } else if (uriString.startsWith("file://")) {
+                            displayName = myFile.getName();
                         }
-                        launchPdfFromUri(uri.toString());
+                    } catch (SecurityException e) {
+                        e.printStackTrace();
+                        Toast.makeText(this, "Engedély nem sikerült!", Toast.LENGTH_SHORT).show();
                     }
+                    //TODO Kivalasztva: <filename>
+                    launchPdfFromUri(uri.toString(),displayName );
                 }
             }
     );
 
+    private Context getActivity() {
+        return this;
+    }
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
+        setContentView(R.layout.activity_main);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
 
         // Edge-to-edge layout
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
@@ -69,12 +115,14 @@ public class PDFOpen extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("PDF Viewer");
+            getSupportActionBar().setTitle("PDF Megjelenito");
         }
 
         setupListeners();
     }
 
+
+    //TODO Dinamikus kereses funkcio megvalositasa random online pdf helyett
     private void setupListeners() {
         binding.onlinePdf.setOnClickListener(v -> {
             setupPdfStatusListener();
@@ -84,59 +132,60 @@ public class PDFOpen extends AppCompatActivity {
         binding.pickPdfButton.setOnClickListener(v -> launchFilePicker());
     }
 
+
     private void setupPdfStatusListener() {
         binding.pdfView.setStatusListener(new PdfRendererView.StatusCallBack() {
             @Override
             public void onPdfLoadStart() {
-                Log.i("PDF Status", "Loading started");
+                Log.i("PDF Statusz", "Betoltes");
             }
 
             @Override
             public void onPdfLoadProgress(int progress, long downloadedBytes, Long totalBytes) {
-                Log.i("PDF Status", "Download progress: " + progress + "%");
+                Log.i("PDF Statusz", "Letoltes folyamatban:" + progress + "%");
             }
 
             @Override
             public void onPdfLoadSuccess(@NonNull String absolutePath) {
-                Log.i("PDF Status", "Load successful: " + absolutePath);
+                Log.i("PDF Statusz", "Sikeres betoltes: " + absolutePath);
             }
 
             @Override
             public void onError(@NonNull Throwable error) {
-                Log.e("PDF Status", "Error loading PDF: " + error.getMessage());
+                Log.e("PDF Statusz", "Hiba a PDF betoltesekor: " + error.getMessage());
             }
 
             @Override
             public void onPageChanged(int currentPage, int totalPage) {
-                Log.i("PDF Status", "Page changed: " + currentPage + " / " + totalPage);
+                Log.i("PDF Statusz", "PDF ablak megvaltoztatva: " + currentPage + " / " + totalPage);
             }
 
             @Override
             public void onPdfRenderStart() {
-                Log.d("PDF Status", "Render started");
+                Log.d("PDF Statusz", "Renderereles megkezdve");
             }
 
             @Override
             public void onPdfRenderSuccess() {
-                Log.d("PDF Status", "Render successful");
+                Log.d("PDF Statusz", "Sikeres rendereles");
                 binding.pdfView.jumpToPage(2, true, 2000);
             }
         });
 
         binding.pdfView.setZoomListener((isZoomedIn, scale) ->
-                Log.i("PDF Zoom", "Zoomed in: " + isZoomedIn + ", Scale: " + scale));
+                Log.i("PDF Nagyitas", "Belenagyitva: " + isZoomedIn + ", Meret: " + scale));
     }
 
     private void launchPdfFromUrl(String url) {
         Map<String, String> headerData = Collections.emptyMap(); // ha nincs szükséged headerre
 
-        Toast.makeText(this, "Opening PDF: " + url, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "PDF Megnyitasa: " + url, Toast.LENGTH_SHORT).show();
 
         startActivity(PdfViewerActivity.Companion.launchPdfFromUrl(
                 this,
                 url,
-                "PDF Title",
-                saveTo.ASK_EVERYTIME, // A MŰKÖDŐ OPCIÓ
+                "PDF Kivalasztva: " + url,
+                saveTo.ASK_EVERYTIME,
                 true,
                 true,
                 headerData,
@@ -152,11 +201,12 @@ public class PDFOpen extends AppCompatActivity {
         filePicker.launch(intent);
     }
 
-    private void launchPdfFromUri(String uri) {
+    private void launchPdfFromUri(String uri, String name) {
         startActivity(PdfViewerActivity.Companion.launchPdfFromPath(
                 this,
                 uri,
-                "Picked PDF",
+                //TODO Kivalasztva + <filename>
+                "PDF Kivalasztva: " + name,
                 saveTo.ASK_EVERYTIME,
                 false,
                 true,
