@@ -138,7 +138,7 @@ public class SearchPDF extends AppCompatActivity {
     private void launchPdfFromUrl(String url,String name) {
         Map<String, String> headerData = Collections.emptyMap();
 
-        Toast.makeText(this, "PDF Megnyitasa: " + url, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "PDF Megnyitasa: " + name, Toast.LENGTH_SHORT).show();
 
         startActivity(PdfViewerActivity.Companion.launchPdfFromUrl(
                 this,
@@ -176,7 +176,7 @@ public class SearchPDF extends AppCompatActivity {
 
                 resultContaier.addView(btn);
 
-                btn.setOnClickListener(v -> launchPdfFromUrl(asd.url, "asd"));
+                btn.setOnClickListener(v -> launchPdfFromUrl(asd.url, asd.name));
             }
         }
     }
