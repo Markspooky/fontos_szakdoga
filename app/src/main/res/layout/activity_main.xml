@@ -6,43 +6,78 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity"
     android:background="@color/beige"
-    android:padding="24dp">
+    android:padding="32dp"
+    tools:context=".MainActivity">
 
-    <Button
-        android:id="@+id/belepes"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="156dp"
-        android:elevation="6dp"
-        android:onClick="loggingIn"
-        android:paddingVertical="20dp"
-        android:text="Belépés"
-        android:textColor="@color/black"
-        android:textSize="24sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
         app:layout_constraintTop_toTopOf="parent"
-        android:backgroundTint="#FFF8DC"
-        />
-
-    <Button
-        android:id="@+id/pdfek"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="120dp"
-        android:backgroundTint="#FFF8DC"
-        android:elevation="6dp"
-        android:onClick="pdfOpen"
-        android:paddingVertical="20dp"
-        android:text="PDF-ek megtekintése"
-        android:textColor="@color/black"
-        android:textSize="20sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/belepes" />
+        app:layout_constraintEnd_toEndOf="parent">
 
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Üdvözlünk!"
+            android:textSize="36sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:layout_marginBottom="48dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/belepes"
+            android:onClick="loggingIn"
+            android:text="Cérna keresése"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:minHeight="56dp"
+            android:paddingVertical="12dp"
+            android:textColor="@android:color/white"
+            android:textSize="18sp"
+            android:textAllCaps="false"
+            android:letterSpacing="0"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:cornerRadius="16dp"
+            app:backgroundTint="@color/primary"
+            app:rippleColor="@color/primary_dark"
+            app:icon="@drawable/ic_login"
+            app:iconGravity="textStart"
+            app:iconTint="@android:color/white"
+            app:iconPadding="16dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            app:layout_constraintWidth_percent="0.8"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/pdfek"
+            android:onClick="pdfOpen"
+            android:text="PDF-ek megtekintése"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:minHeight="56dp"
+            android:paddingVertical="12dp"
+            android:textColor="@android:color/white"
+            android:textSize="18sp"
+            android:textAllCaps="false"
+            android:letterSpacing="0"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:cornerRadius="16dp"
+            app:backgroundTint="@color/primary"
+            app:rippleColor="@color/primary_dark"
+            app:icon="@drawable/ic_login"
+            app:iconGravity="textStart"
+            app:iconTint="@android:color/white"
+            app:iconPadding="16dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            app:layout_constraintWidth_percent="0.8"/>
+    </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

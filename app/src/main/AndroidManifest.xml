@@ -15,6 +15,9 @@
         android:theme="@style/Theme.Szakdoga"
         tools:targetApi="27">
         <activity
+            android:name=".SearchPDF"
+            android:exported="false" />
+        <activity
             android:name=".PDFOpen"
             android:exported="false" />
         <activity
