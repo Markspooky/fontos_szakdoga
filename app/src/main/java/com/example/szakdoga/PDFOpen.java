@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -39,15 +40,6 @@ import java.util.Map;
 public class PDFOpen extends AppCompatActivity {
 
     private PdfopenPageBinding binding;
-
-    private final List<String> pdfList = Arrays.asList(
-            "https://css4.pub/2015/usenix/example.pdf",
-            "https://research.nhm.org/pdfs/10840/10840.pdf",
-            "http://192.168.0.72:8001/pw.pdf",
-            "https://css4.pub/2017/newsletter/drylab.pdf",
-            "https://css4.pub/2015/textbook/somatosensory.pdf"
-    );
-
 
 
     //A letoltesek mappaban turkalo filekereso
@@ -118,20 +110,24 @@ public class PDFOpen extends AppCompatActivity {
             getSupportActionBar().setTitle("PDF Megjelenito");
         }
 
-        setupListeners();
+      setupListeners();
     }
 
 
     //TODO Dinamikus kereses funkcio megvalositasa random online pdf helyett
     private void setupListeners() {
-        binding.onlinePdf.setOnClickListener(v -> {
+        binding.searchPdf.setOnClickListener(v -> {
             setupPdfStatusListener();
-            launchPdfFromUrl(pdfList.get(3));
+            pdfSearch(v);
         });
 
         binding.pickPdfButton.setOnClickListener(v -> launchFilePicker());
     }
 
+    public void pdfSearch(View view) {
+        Intent intent = new Intent(PDFOpen.this, SearchPDF.class);
+        startActivity(intent);
+    }
 
     private void setupPdfStatusListener() {
         binding.pdfView.setStatusListener(new PdfRendererView.StatusCallBack() {
@@ -176,7 +172,7 @@ public class PDFOpen extends AppCompatActivity {
                 Log.i("PDF Nagyitas", "Belenagyitva: " + isZoomedIn + ", Meret: " + scale));
     }
 
-    private void launchPdfFromUrl(String url) {
+    private void launchPdfFromUrl(String url,String name) {
         Map<String, String> headerData = Collections.emptyMap(); // ha nincs szükséged headerre
 
         Toast.makeText(this, "PDF Megnyitasa: " + url, Toast.LENGTH_SHORT).show();
@@ -184,7 +180,7 @@ public class PDFOpen extends AppCompatActivity {
         startActivity(PdfViewerActivity.Companion.launchPdfFromUrl(
                 this,
                 url,
-                "PDF Kivalasztva: " + url,
+                name,
                 saveTo.ASK_EVERYTIME,
                 true,
                 true,
@@ -205,8 +201,7 @@ public class PDFOpen extends AppCompatActivity {
         startActivity(PdfViewerActivity.Companion.launchPdfFromPath(
                 this,
                 uri,
-                //TODO Kivalasztva + <filename>
-                "PDF Kivalasztva: " + name,
+                name,
                 saveTo.ASK_EVERYTIME,
                 false,
                 true,

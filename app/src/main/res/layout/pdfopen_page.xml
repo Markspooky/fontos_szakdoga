@@ -32,9 +32,10 @@
 
     <!-- Buttons Section -->
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/onlinePdf"
+            android:id="@+id/searchPdf"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:onClick="pdfSearch"
             android:layout_marginBottom="24dp"
             android:minHeight="56dp"
             android:paddingVertical="12dp"
@@ -57,7 +58,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/pickPdfButton"
-            app:layout_constraintTop_toBottomOf="@id/onlinePdf"
+            app:layout_constraintTop_toBottomOf="@id/searchPdf"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
@@ -78,7 +79,8 @@
             app:iconTint="@android:color/white"
             app:iconPadding="16dp"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            app:layout_constraintWidth_percent="0.8"/>
+            app:layout_constraintWidth_percent="0.8"
+            tools:ignore="OnClick" />
 
 
         <!-- PDF Viewer Section -->
@@ -88,7 +90,7 @@
             android:layout_height="0dp"
             app:pdfView_showDivider="true"
             app:pdfView_enableZoom="true"
-            app:layout_constraintTop_toBottomOf="@id/onlinePdf"
+            app:layout_constraintTop_toBottomOf="@id/searchPdf"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"

@@ -33,7 +33,7 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/belepes"
             android:onClick="loggingIn"
-            android:text="Belépés"
+            android:text="Cérna keresése"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
