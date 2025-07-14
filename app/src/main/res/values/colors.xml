@@ -1,9 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="beige">#e4e4a2</color>
-    <color name="gold">#D4AF37</color>
     <color name="primary">#6200EE</color>
     <color name="primary_dark">#3700B3</color>
+    <color name="lavender_light">#EDE7F6</color>
+    <color name="light_grey">#F5F5F5</color>
+    <color name="soft_blue">#E3F2FD</color>
+    <color name="dialogbackground">#E7E8D1</color>
+    <color name="btnbackground">#B85042</color>
+    <color name="background">#A7BEAE</color>
+    <color name="colorPrimary">#0f9d58</color>
+    <color name="colorPrimaryDark">#006d2d</color>
+    <color name="colorAccent">#55cf86</color>
+
+
+    <!-- Dark mode: -->
+
+    <color name="textColor">@color/black</color>
+    <color name="backgroundColor">@color/white</color>
+
+
 </resources>

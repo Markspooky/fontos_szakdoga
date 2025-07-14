@@ -113,7 +113,8 @@ public class SearchPDF extends AppCompatActivity {
         allPdf = Arrays.asList(
                 new Asd("https://morth.nic.in/sites/default/files/dd12-13_0.pdf","pdf1"),
                 new Asd("https://morth.nic.in/sites/default/files/dd12-13_0.pdf","pdf2"),
-                new Asd("https://morth.nic.in/sites/default/files/dd12-13_0.pdf","pdf3")
+                new Asd("https://morth.nic.in/sites/default/files/dd12-13_0.pdf","pdf3"),
+                new Asd("\\\\192.168.255.40\\Megosztas\\Dokumentumok\\B&B","pdf4")
         );
 
         updateResults("");
