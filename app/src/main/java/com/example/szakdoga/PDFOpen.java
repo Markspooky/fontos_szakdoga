@@ -113,8 +113,6 @@ public class PDFOpen extends AppCompatActivity {
       setupListeners();
     }
 
-
-    //TODO Dinamikus kereses funkcio megvalositasa random online pdf helyett
     private void setupListeners() {
         binding.searchPdf.setOnClickListener(v -> {
             setupPdfStatusListener();

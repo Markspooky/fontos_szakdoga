@@ -6,11 +6,14 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.DocumentsContract;
 import android.provider.OpenableColumns;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
@@ -23,15 +26,26 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+
+
 import com.rajat.pdfviewer.PdfViewerActivity;
 import com.rajat.pdfviewer.util.CacheStrategy;
 import com.rajat.pdfviewer.util.ToolbarTitleBehavior;
 import com.rajat.pdfviewer.util.saveTo;
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
+import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.share.DiskShare;
 
 
 
@@ -40,15 +54,17 @@ public class SearchPDF extends AppCompatActivity {
     EditText searchEditText;
     LinearLayout resultContaier;
 
-    static class Asd {
-        String url,name;
-        Asd(String url,String name) {
-        this.url = url;
-        this.name = name;
+    static class PDF {
+        String name;
+        FileIdBothDirectoryInformation fileID;
+        PDF(String name, FileIdBothDirectoryInformation fileID) {
+            this.fileID = fileID;
+            this.name = name;
         }
     }
 
-    List<Asd> allPdf;
+    List<PDF> allPdf = new ArrayList<>();
+
 
 
 //    @SuppressLint("Range")
@@ -110,16 +126,6 @@ public class SearchPDF extends AppCompatActivity {
         searchEditText = findViewById(R.id.searchEditText);
         resultContaier = findViewById(R.id.resultContainer);
 
-        allPdf = Arrays.asList(
-                new Asd("https://morth.nic.in/sites/default/files/dd12-13_0.pdf","pdf1"),
-                new Asd("https://morth.nic.in/sites/default/files/dd12-13_0.pdf","pdf2"),
-                new Asd("https://morth.nic.in/sites/default/files/dd12-13_0.pdf","pdf3"),
-                new Asd("\\\\192.168.255.40\\Megosztas\\Dokumentumok\\B&B","pdf4")
-        );
-
-        updateResults("");
-
-
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -134,31 +140,48 @@ public class SearchPDF extends AppCompatActivity {
 
         });
 
+//TODO A program latja az adott mappaban a pdfket, de csak ott
+//TODO Ezt kell megoldani, hogy tobb mappat lasson, es hogy meg lehessen oket nyitni
+
+        new Thread(() -> {
+            SMBClient client = new SMBClient();
+            try (Connection connection = client.connect("192.168.255.40")) {
+                Session session = connection.authenticate(
+                        new AuthenticationContext("bb", "Unicornis911!".toCharArray(), "DOMAIN")
+                );
+
+                try (DiskShare share = (DiskShare) session.connectShare("Megosztas")) {
+                    List<PDF> tempList = new ArrayList<>();
+                    for (FileIdBothDirectoryInformation item : share.list("Dokumentumok/B&B/Div+Pen")) {
+                        if (item.getFileName().endsWith(".pdf")) {
+                            tempList.add(new PDF(item.getFileName(), item));
+                        }
+                    }
+
+                    runOnUiThread(() -> {
+                        allPdf.clear();
+                        allPdf.addAll(tempList);
+                        updateResults(""); // UI frissítés
+                    });
+
+                } catch (Exception e) {
+                    Log.e("error", "Hiba a NAS során: ", e);
+                }
+            } catch (Exception e) {
+                Log.e("error", "Hiba a NAS kapcsolódás során: ", e);
+            }
+        }).start();
     }
 
-    private void launchPdfFromUrl(String url,String name) {
-        Map<String, String> headerData = Collections.emptyMap();
-
-        Toast.makeText(this, "PDF Megnyitasa: " + name, Toast.LENGTH_SHORT).show();
-
-        startActivity(PdfViewerActivity.Companion.launchPdfFromUrl(
-                this,
-                url,
-                name,
-                saveTo.ASK_EVERYTIME,
-                true,
-                true,
-                headerData,
-                ToolbarTitleBehavior.SINGLE_LINE_SCROLLABLE,
-                CacheStrategy.MAXIMIZE_PERFORMANCE
-        ));
-    }
 
     @SuppressLint("SetTextI18n")
     private void updateResults(String query) {
         resultContaier.removeAllViews();
 
-        for(Asd asd : allPdf) {
+        String actionOpenDocument = Intent.ACTION_OPEN_DOCUMENT;
+        Intent intent = new Intent(actionOpenDocument);
+
+        for(PDF asd : allPdf) {
             if (asd.name.toLowerCase().contains(query.toLowerCase())) {
                 Button btn = new Button(this);
                 btn.setText(asd.name);
@@ -170,18 +193,19 @@ public class SearchPDF extends AppCompatActivity {
                 btn.setTextSize(25);
                 btn.setBackgroundResource(R.drawable.rounded_edittext);
                 btn.setTextAlignment(ViewGroup.TEXT_ALIGNMENT_VIEW_START);
-                btn.setTextColor(android.graphics.Color.BLACK);
+                btn.setTextColor(Color.BLACK);
                 btn.setElevation(1);
                 vau.setMargins(0,0,0,30);
                 btn.setLayoutParams(vau);
 
                 resultContaier.addView(btn);
 
-                btn.setOnClickListener(v -> launchPdfFromUrl(asd.url, asd.name));
+                
+                //btn.setOnClickListener(v -> launchPdfFromUrl(asd.name, String.valueOf(asd.fileID)));
+                //btn.setOnClickListener(v -> startActivityForResult(intent,READ_EXTERNAL_STORAGE | PICK_PDF_FILE));
             }
         }
     }
 
 
 }
-

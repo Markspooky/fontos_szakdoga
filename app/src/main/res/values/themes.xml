@@ -1,9 +1,21 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.Szakdoga" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="pdfView_backgroundColor">@color/white</item>
+        <item name="pdfView_toolbarColor">@color/background</item>
+        <item name="pdfView_disableScreenshots">true</item>
+
     </style>
+
+
+    <style name="Theme.PdfView.SelectedTheme.">
+        <item name="pdfView_backgroundColor">@color/white</item>
+        <item name="pdfView_toolbarColor">@color/background</item>
+        <item name="pdfView_disableScreenshots">true</item>
+
+    </style>
+
+
 
     <style name="Theme.Szakdoga" parent="Base.Theme.Szakdoga" />
 

@@ -15,6 +15,11 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+    packaging {
+        resources {
+            excludes += "/META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+        }
+    }
 
     buildTypes {
         release {
@@ -49,7 +54,11 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+
+
     implementation("io.github.afreakyelf:Pdf-Viewer:2.3.7")
+
+    implementation ("com.hierynomus:smbj:0.14.0")
 
 
 
