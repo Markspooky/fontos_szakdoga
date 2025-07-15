@@ -1,16 +1,11 @@
 package com.example.szakdoga;
 
-import static android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
-
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.DocumentsContract;
-import android.provider.OpenableColumns;
+import android.os.Environment;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -20,39 +15,45 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-
+import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.rajat.pdfviewer.PdfViewerActivity;
 import com.rajat.pdfviewer.util.CacheStrategy;
 import com.rajat.pdfviewer.util.ToolbarTitleBehavior;
 import com.rajat.pdfviewer.util.saveTo;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+
+import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
-import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.mssmb2.SMB2CreateOptions;
+import com.hierynomus.mssmb2.SMB2ShareAccess;
 import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 
-
-
 public class SearchPDF extends AppCompatActivity {
 
     EditText searchEditText;
-    LinearLayout resultContaier;
+    LinearLayout resultContainer;
+    private static final String SERVER_IP = "192.168.255.40";
+    private static final String SHARE_NAME = "Megosztas";
+    private static final String FOLDER_PATH = "Dokumentumok/B&B/Div+Pen/";
+    private static final String USERNAME = "bb";
+    private static final String PASSWORD = "Unicornis911!";
 
     static class PDF {
         String name;
@@ -65,56 +66,9 @@ public class SearchPDF extends AppCompatActivity {
 
     List<PDF> allPdf = new ArrayList<>();
 
-
-
-//    @SuppressLint("Range")
-//    private final ActivityResultLauncher<Intent> filePicker = registerForActivityResult(
-//            new ActivityResultContracts.StartActivityForResult(),
-//            result -> {
-//                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-//                    Uri uri = result.getData().getData();
-//                    assert uri != null;
-//                    String uriString = uri.toString();
-//                    File myFile = new File(uriString);
-//                    String path = myFile.getAbsolutePath();
-//                    String displayName = null;
-//                    try {
-//                        final int takeFlags = result.getData().getFlags()
-//                                & (Intent.FLAG_GRANT_READ_URI_PERMISSION | FLAG_GRANT_WRITE_URI_PERMISSION);
-//                        //A pdf megnyitas engedelyezese
-//                        getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION | FLAG_GRANT_WRITE_URI_PERMISSION);
-//                        if (uriString.startsWith("content://")) {
-//                            Cursor cursor = null;
-//                            try {
-//                                cursor = getActivity().getContentResolver().query(uri, null, null, null, null);
-//                                if (cursor != null && cursor.moveToFirst()) {
-//                                    displayName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
-//                                }
-//                            } finally {
-//                                assert cursor != null;
-//                                cursor.close();
-//                            }
-//                        } else if (uriString.startsWith("file://")) {
-//                            displayName = myFile.getName();
-//                        }
-//                    } catch (SecurityException e) {
-//                        e.printStackTrace();
-//                        Toast.makeText(this, "Engedély nem sikerült!", Toast.LENGTH_SHORT).show();
-//                    }
-//                    launchPdfFromUrl(uri.toString(),displayName );
-//                }
-//            }
-//    );
-
-    private Context getActivity() {
-        return this;
-    }
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_logged_in);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
@@ -124,8 +78,9 @@ public class SearchPDF extends AppCompatActivity {
         });
 
         searchEditText = findViewById(R.id.searchEditText);
-        resultContaier = findViewById(R.id.resultContainer);
+        resultContainer = findViewById(R.id.resultContainer);
 
+        // Text change listener
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -137,75 +92,126 @@ public class SearchPDF extends AppCompatActivity {
             public void afterTextChanged(Editable s) {
                 updateResults(s.toString());
             }
-
         });
 
-//TODO A program latja az adott mappaban a pdfket, de csak ott
-//TODO Ezt kell megoldani, hogy tobb mappat lasson, es hogy meg lehessen oket nyitni
+        fetchPdfsFromNas();
+    }
 
+    private void fetchPdfsFromNas() {
         new Thread(() -> {
             SMBClient client = new SMBClient();
-            try (Connection connection = client.connect("192.168.255.40")) {
+            try (Connection connection = client.connect(SERVER_IP)) {
                 Session session = connection.authenticate(
-                        new AuthenticationContext("bb", "Unicornis911!".toCharArray(), "DOMAIN")
+                        new AuthenticationContext(USERNAME, PASSWORD.toCharArray(), "DOMAIN")
                 );
-
-                try (DiskShare share = (DiskShare) session.connectShare("Megosztas")) {
+                try (DiskShare share = (DiskShare) session.connectShare(SHARE_NAME)) {
                     List<PDF> tempList = new ArrayList<>();
-                    for (FileIdBothDirectoryInformation item : share.list("Dokumentumok/B&B/Div+Pen")) {
-                        if (item.getFileName().endsWith(".pdf")) {
-                            tempList.add(new PDF(item.getFileName(), item));
+                    for (FileIdBothDirectoryInformation item : share.list(FOLDER_PATH)) {
+                        String fileName = item.getFileName();
+                        if (fileName.endsWith(".pdf")) {
+                            tempList.add(new PDF(fileName, item));
                         }
                     }
-
                     runOnUiThread(() -> {
                         allPdf.clear();
                         allPdf.addAll(tempList);
-                        updateResults(""); // UI frissítés
+                        updateResults("");
                     });
-
-                } catch (Exception e) {
-                    Log.e("error", "Hiba a NAS során: ", e);
                 }
             } catch (Exception e) {
-                Log.e("error", "Hiba a NAS kapcsolódás során: ", e);
+                Log.e("SMB", "Error accessing NAS", e);
+                runOnUiThread(() ->
+                        Toast.makeText(this, "Hiba a NAS elérésekor", Toast.LENGTH_SHORT).show());
             }
         }).start();
     }
 
+    private void openPdfFromNas(String fileName) {
+        new Thread(() -> {
+            try {
+                // Create temp file in cache
+                File cacheDir = getCacheDir();
+                File tempFile = new File(cacheDir, fileName);
+
+                // Connect to NAS and download file
+                SMBClient client = new SMBClient();
+                try (Connection connection = client.connect(SERVER_IP)) {
+                    Session session = connection.authenticate(
+                            new AuthenticationContext(USERNAME, PASSWORD.toCharArray(), "DOMAIN")
+                    );
+                    try (DiskShare share = (DiskShare) session.connectShare(SHARE_NAME)) {
+                        String filePath = FOLDER_PATH + fileName;
+                        try (com.hierynomus.smbj.share.File smbFile = share.openFile(
+                                filePath,
+                                EnumSet.of(AccessMask.GENERIC_READ),
+                                null,
+                                SMB2ShareAccess.ALL,
+                                SMB2CreateDisposition.FILE_OPEN,
+                                null)) {
+
+                            try (InputStream is = smbFile.getInputStream();
+                                 OutputStream os = new FileOutputStream(tempFile)) {
+                                byte[] buffer = new byte[8192];
+                                int bytesRead;
+                                while ((bytesRead = is.read(buffer)) != -1) {
+                                    os.write(buffer, 0, bytesRead);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Open the downloaded file
+                runOnUiThread(() -> launchPdf(tempFile.getAbsolutePath(), fileName));
+
+            } catch (Exception e) {
+                Log.e("PDF_OPEN", "Error opening PDF", e);
+                runOnUiThread(() ->
+                        Toast.makeText(this, "Hiba a PDF megnyitásakor", Toast.LENGTH_SHORT).show());
+            }
+        }).start();
+    }
+
+    private void launchPdf(String path, String fileName) {
+        Toast.makeText(this, "PDF megnyitása: " + fileName, Toast.LENGTH_SHORT).show();
+
+        startActivity(PdfViewerActivity.Companion.launchPdfFromPath(
+                this,
+                path,
+                fileName,
+                saveTo.ASK_EVERYTIME,
+                true,
+                true,
+                ToolbarTitleBehavior.SINGLE_LINE_SCROLLABLE,
+                CacheStrategy.MAXIMIZE_PERFORMANCE
+        ));
+    }
 
     @SuppressLint("SetTextI18n")
     private void updateResults(String query) {
-        resultContaier.removeAllViews();
-
-        String actionOpenDocument = Intent.ACTION_OPEN_DOCUMENT;
-        Intent intent = new Intent(actionOpenDocument);
-
-        for(PDF asd : allPdf) {
-            if (asd.name.toLowerCase().contains(query.toLowerCase())) {
+        resultContainer.removeAllViews();
+        for (PDF pdf : allPdf) {
+            if (pdf.name.toLowerCase().contains(query.toLowerCase())) {
                 Button btn = new Button(this);
-                btn.setText(asd.name);
-                btn.setPadding(30,30,30,30);
-                LinearLayout.LayoutParams vau = new LinearLayout.LayoutParams(
+                btn.setText(pdf.name);
+                btn.setPadding(30, 30, 30, 30);
+
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 );
+                params.setMargins(0, 0, 0, 30);
+
+                btn.setLayoutParams(params);
                 btn.setTextSize(25);
                 btn.setBackgroundResource(R.drawable.rounded_edittext);
-                btn.setTextAlignment(ViewGroup.TEXT_ALIGNMENT_VIEW_START);
+                btn.setTextAlignment(android.view.View.TEXT_ALIGNMENT_VIEW_START);
                 btn.setTextColor(Color.BLACK);
                 btn.setElevation(1);
-                vau.setMargins(0,0,0,30);
-                btn.setLayoutParams(vau);
 
-                resultContaier.addView(btn);
-
-                
-                //btn.setOnClickListener(v -> launchPdfFromUrl(asd.name, String.valueOf(asd.fileID)));
-                //btn.setOnClickListener(v -> startActivityForResult(intent,READ_EXTERNAL_STORAGE | PICK_PDF_FILE));
+                btn.setOnClickListener(v -> openPdfFromNas(pdf.name));
+                resultContainer.addView(btn);
             }
         }
     }
-
-
 }

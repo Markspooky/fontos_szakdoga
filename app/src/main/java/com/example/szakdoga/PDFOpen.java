@@ -170,24 +170,6 @@ public class PDFOpen extends AppCompatActivity {
                 Log.i("PDF Nagyitas", "Belenagyitva: " + isZoomedIn + ", Meret: " + scale));
     }
 
-    private void launchPdfFromUrl(String url,String name) {
-        Map<String, String> headerData = Collections.emptyMap(); // ha nincs szükséged headerre
-
-        Toast.makeText(this, "PDF Megnyitasa: " + url, Toast.LENGTH_SHORT).show();
-
-        startActivity(PdfViewerActivity.Companion.launchPdfFromUrl(
-                this,
-                url,
-                name,
-                saveTo.ASK_EVERYTIME,
-                true,
-                true,
-                headerData,
-                ToolbarTitleBehavior.SINGLE_LINE_SCROLLABLE,
-                CacheStrategy.MAXIMIZE_PERFORMANCE
-        ));
-    }
-
     private void launchFilePicker() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT)
                 .addCategory(Intent.CATEGORY_OPENABLE)
