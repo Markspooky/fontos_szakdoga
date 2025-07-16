@@ -180,7 +180,7 @@ public class SearchPDF extends AppCompatActivity {
                 path,
                 fileName,
                 saveTo.ASK_EVERYTIME,
-                true,
+                false,
                 true,
                 ToolbarTitleBehavior.SINGLE_LINE_SCROLLABLE,
                 CacheStrategy.MAXIMIZE_PERFORMANCE
