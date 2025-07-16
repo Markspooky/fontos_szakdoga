@@ -7,7 +7,8 @@
     android:layout_height="match_parent"
     tools:context=".SearchPDF"
     android:background="@color/background"
-    style="@style/Bars">
+    style="@style/Bars"
+    tools:ignore="MissingClass">
 
     <EditText
         android:id="@+id/searchEditText"
@@ -43,7 +44,6 @@
             android:orientation="vertical"
             android:padding="16dp"
             android:gravity="center_horizontal" />
-
     </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

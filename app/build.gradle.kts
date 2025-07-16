@@ -59,7 +59,4 @@ dependencies {
     implementation("io.github.afreakyelf:Pdf-Viewer:2.3.7")
 
     implementation ("com.hierynomus:smbj:0.14.0")
-
-
-
 }

@@ -92,7 +92,7 @@ public class PDFOpen extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.pdfopen_page);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -167,7 +167,7 @@ public class PDFOpen extends AppCompatActivity {
         });
 
         binding.pdfView.setZoomListener((isZoomedIn, scale) ->
-                Log.i("PDF Nagyitas", "Belenagyitva: " + isZoomedIn + ", Meret: " + scale));
+                Toast.makeText(this, isZoomedIn + " " + scale, Toast.LENGTH_SHORT).show());
     }
 
     private void launchFilePicker() {

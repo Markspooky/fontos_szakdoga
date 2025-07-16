@@ -2,7 +2,10 @@ package com.example.szakdoga;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -21,10 +24,12 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
+import com.rajat.pdfviewer.PdfRendererView;
 import com.rajat.pdfviewer.PdfViewerActivity;
 import com.rajat.pdfviewer.util.CacheStrategy;
 import com.rajat.pdfviewer.util.ToolbarTitleBehavior;
 import com.rajat.pdfviewer.util.saveTo;
+import com.rajat.pdfviewer.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -45,6 +50,7 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 
+
 public class SearchPDF extends AppCompatActivity {
 
     EditText searchEditText;
@@ -54,6 +60,8 @@ public class SearchPDF extends AppCompatActivity {
     private static final String FOLDER_PATH = "Dokumentumok/B&B/Div+Pen/";
     private static final String USERNAME = "bb";
     private static final String PASSWORD = "Unicornis911!";
+    PdfRendererFragment pdfRendererFragment;
+
 
     static class PDF {
         String name;
@@ -70,7 +78,7 @@ public class SearchPDF extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_logged_in);
+        setContentView(R.layout.activity_search_pdf);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -129,11 +137,8 @@ public class SearchPDF extends AppCompatActivity {
     private void openPdfFromNas(String fileName) {
         new Thread(() -> {
             try {
-                // Create temp file in cache
                 File cacheDir = getCacheDir();
                 File tempFile = new File(cacheDir, fileName);
-
-                // Connect to NAS and download file
                 SMBClient client = new SMBClient();
                 try (Connection connection = client.connect(SERVER_IP)) {
                     Session session = connection.authenticate(
@@ -148,7 +153,7 @@ public class SearchPDF extends AppCompatActivity {
                                 SMB2ShareAccess.ALL,
                                 SMB2CreateDisposition.FILE_OPEN,
                                 null)) {
-
+                            //ramba lementi a pdfet
                             try (InputStream is = smbFile.getInputStream();
                                  OutputStream os = new FileOutputStream(tempFile)) {
                                 byte[] buffer = new byte[8192];
@@ -175,17 +180,22 @@ public class SearchPDF extends AppCompatActivity {
     private void launchPdf(String path, String fileName) {
         Toast.makeText(this, "PDF megnyitása: " + fileName, Toast.LENGTH_SHORT).show();
 
-        startActivity(PdfViewerActivity.Companion.launchPdfFromPath(
-                this,
-                path,
-                fileName,
-                saveTo.ASK_EVERYTIME,
-                true,
-                true,
-                ToolbarTitleBehavior.SINGLE_LINE_SCROLLABLE,
-                CacheStrategy.MAXIMIZE_PERFORMANCE
-        ));
+
+        Intent intent = new Intent(this, CustomPDFViewer.class);
+        intent.putExtra(CustomPDFViewer.EXTRA_PDF_PATH, path);
+        startActivity(intent);
+
     }
+
+    private void zoomListener() {
+        PdfRendererView.ZoomListener zoomocska = new PdfRendererView.ZoomListener() {
+            @Override
+            public void onZoomChanged(boolean b, float v) {
+            }
+        };
+
+    }
+
 
     @SuppressLint("SetTextI18n")
     private void updateResults(String query) {
@@ -214,4 +224,12 @@ public class SearchPDF extends AppCompatActivity {
             }
         }
     }
+
+
+    //Zoom developing
+
+
+
+
+
 }
