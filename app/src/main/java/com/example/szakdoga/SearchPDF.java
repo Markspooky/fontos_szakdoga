@@ -45,6 +45,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
 
 public class SearchPDF extends AppCompatActivity {
 
@@ -91,13 +92,18 @@ public class SearchPDF extends AppCompatActivity {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
             @Override public void afterTextChanged(Editable s) {
-                updateResults(s.toString());
+                String query = s.toString().trim();
+                if (query.isEmpty()) {
+                    fetchItemsFromNas(currentPath);
+                } else {
+                    searchRecursivelyOnNas(FOLDER_PATH, query);
+                }
             }
         });
 
         fetchItemsFromNas(FOLDER_PATH);
     }
-    //**************************************************Getting NAS details**************************************************\\
+    //**************************************************Getting NAS config from JSON**************************************************\\
     private void loadJson() {
         try (InputStream inputStream = getAssets().open("config.json")) {
             byte[] buffer = new byte[inputStream.available()];
@@ -117,6 +123,46 @@ public class SearchPDF extends AppCompatActivity {
             throw new RuntimeException("Hiba a config.json beolvasásakor", e);
         }
     }
+
+    //************************************************** **************************************************\\
+    private void searchRecursivelyOnNas(String startPath, String query) {
+        new Thread(() -> {
+            SMBClient client = new SMBClient();
+            try (Connection connection = client.connect(SERVER_IP)) {
+                Session session = connection.authenticate(new AuthenticationContext(USERNAME, PASSWORD.toCharArray(), ""));
+                try (DiskShare share = (DiskShare) session.connectShare(SHARE_NAME)) {
+                    List<PDF> matchedPdfs = new ArrayList<>();
+                    recursiveSearch(share, startPath, query, matchedPdfs);
+
+                    runOnUiThread(() -> {
+                        allPdf.clear();
+                        allPdf.addAll(matchedPdfs);
+                        updateResults(query);
+                    });
+                }
+            } catch (Exception e) {
+                Log.e("SMB_SEARCH", "Rekurzív keresés hiba", e);
+                runOnUiThread(() -> Toast.makeText(this, "Hiba a rekurzív keresés során", Toast.LENGTH_SHORT).show());
+            }
+        }).start();
+    }
+    //************************************************** **************************************************\\
+    private void recursiveSearch(DiskShare share, String path, String query, List<PDF> resultList) {
+        for (FileIdBothDirectoryInformation item : share.list(path)) {
+            String name = item.getFileName();
+            if (name.equals(".") || name.equals("..")) continue;
+
+            String fullPath = path.endsWith("/") ? path + name : path + "/" + name;
+
+            if ((item.getFileAttributes() & FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue()) != 0) {
+                recursiveSearch(share, fullPath, query, resultList);
+            } else if (name.toLowerCase().endsWith(".pdf") && name.toLowerCase().contains(query.toLowerCase())) {
+                resultList.add(new PDF(fullPath, item));
+            }
+        }
+    }
+
+
 
     //**************************************************Getting PDFs from Server**************************************************\\
     private void fetchItemsFromNas(String folderPath) {
@@ -157,7 +203,7 @@ public class SearchPDF extends AppCompatActivity {
             }
         }).start();
     }
-    //**************************************************Opening PDFs from Server**************************************************\\
+
     private void openPdfFromNas(String fullFilePath) {
         new Thread(() -> {
             try {
@@ -201,7 +247,7 @@ public class SearchPDF extends AppCompatActivity {
             }
         }).start();
     }
-    //**************************************************Launches PDF from path**************************************************\\
+
     private void launchPdf(String path, String fileName) {
         Toast.makeText(this, "PDF megnyitása: " + fileName, Toast.LENGTH_SHORT).show();
 
@@ -216,21 +262,39 @@ public class SearchPDF extends AppCompatActivity {
                 CacheStrategy.MAXIMIZE_PERFORMANCE
         ));
     }
-    //**************************************************Dynamic Search with Folders**************************************************\\
+
     @SuppressLint("SetTextI18n")
     private void updateResultsWithFolders(List<String> folders, List<PDF> pdfs) {
         resultContainer.removeAllViews();
 
-        if (!currentPath.equals(FOLDER_PATH)) {
+        String lastPath = currentPath;
+        currentPath = lastPath;  // opcionális, ha biztosítani akarjuk sorrendet
+
+        if (!lastPath.equals(FOLDER_PATH)) {
             Button backBtn = new Button(this);
-            backBtn.setText("⬅ Vissza");
+            backBtn.setText("<-- Vissza");
             backBtn.setOnClickListener(v -> {
-                String parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+                String parentPath = currentPath;
+
+                if (currentPath.startsWith(FOLDER_PATH) && currentPath.length() > FOLDER_PATH.length()) {
+                    parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+                    if (parentPath.endsWith("/")) {
+                        parentPath = parentPath.substring(0, parentPath.length() - 1);
+                    }
+                } else {
+                    parentPath = FOLDER_PATH;
+                }
+
+                currentPath = parentPath;
                 fetchItemsFromNas(parentPath);
             });
+
             styleButton(backBtn);
             resultContainer.addView(backBtn);
         }
+//TODO PDF kattintasa utan animacio, hogy ne lehessen ujra megnyitni
+//TODO minimum 3 karakterrel kereses
+//TODO maximum 100 pdf kilistazasa kereses utan
 
         for (String folderName : folders) {
             Button btn = new Button(this);
@@ -256,23 +320,21 @@ public class SearchPDF extends AppCompatActivity {
             resultContainer.addView(btn);
         }
     }
-    //**************************************************Dynamic Search with PDFs**************************************************\\
+
+    @SuppressLint("SetTextI18n")
     private void updateResults(String query) {
         resultContainer.removeAllViews();
         for (PDF pdf : allPdf) {
             if (pdf.name.toLowerCase().contains(query.toLowerCase())) {
                 Button btn = new Button(this);
-                btn.setText(pdf.name);
-                btn.setOnClickListener(v -> {
-                    String path = currentPath;
-                    if (!path.endsWith("/")) path += "/";
-                    openPdfFromNas(path + pdf.name);
-                });
+                btn.setText(pdf.name.substring(pdf.name.lastIndexOf('/') + 1) + "\n📁 " + pdf.name.substring(0, pdf.name.lastIndexOf('/')));
+                btn.setOnClickListener(v -> openPdfFromNas(pdf.name));
                 styleButton(btn);
                 resultContainer.addView(btn);
             }
         }
     }
+
 
     private void styleButton(Button btn) {
         btn.setPadding(30, 30, 30, 30);
