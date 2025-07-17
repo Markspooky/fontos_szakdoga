@@ -43,12 +43,13 @@ public class MainActivity extends AppCompatActivity {
         belepes.startAnimation(anim2);
         pdfek.startAnimation(anim3);
     }
-
+    //**************************************************Going to MaterialSearch**************************************************\\
     public void loggingIn(View view) {
-        Intent intent = new Intent(MainActivity.this, LoggedIn.class);
+        Intent intent = new Intent(MainActivity.this, MaterialSearch.class);
         startActivity(intent);
 
     }
+    //**************************************************Going to PDFOpen**************************************************\\
     public void pdfOpen(View view) {
         Intent intent = new Intent(MainActivity.this, PDFOpen.class);
         startActivity(intent);

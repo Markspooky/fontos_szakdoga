@@ -7,7 +7,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
-    android:padding="24dp">
+    android:padding="32dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -33,9 +33,10 @@
     <!-- Buttons Section -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/searchPdf"
+            android:text="PDF Keresése"
+            android:onClick="pdfSearch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="pdfSearch"
             android:layout_marginBottom="24dp"
             android:minHeight="56dp"
             android:paddingVertical="12dp"
@@ -43,7 +44,6 @@
             android:textSize="18sp"
             android:textAllCaps="false"
             android:letterSpacing="0"
-            android:text="PDF Keresése"
             android:insetTop="0dp"
             android:insetBottom="0dp"
             app:cornerRadius="16dp"
@@ -59,6 +59,7 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/pickPdfButton"
             app:layout_constraintTop_toBottomOf="@id/searchPdf"
+            android:text="Letöltések megnyitása"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
@@ -68,7 +69,6 @@
             android:textSize="18sp"
             android:textAllCaps="false"
             android:letterSpacing="0"
-            android:text="Letöltések megnyitása"
             android:insetTop="0dp"
             android:insetBottom="0dp"
             app:cornerRadius="16dp"

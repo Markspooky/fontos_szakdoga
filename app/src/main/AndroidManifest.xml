@@ -21,7 +21,7 @@
             android:name=".PDFOpen"
             android:exported="false" />
         <activity
-            android:name=".LoggedIn"
+            android:name=".MaterialSearch"
             android:exported="false" />
         <activity
             android:name=".MainActivity"

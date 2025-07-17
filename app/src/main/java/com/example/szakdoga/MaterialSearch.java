@@ -22,7 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-public class LoggedIn extends AppCompatActivity {
+public class MaterialSearch extends AppCompatActivity {
 
     EditText searchEditText;
     LinearLayout resultContaier;
@@ -37,7 +37,7 @@ public class LoggedIn extends AppCompatActivity {
             this.color = color;
             this.mekkoraafasza = mekkoraafasza;
         }
-    }
+}
 
     List<Asd> allRouters;
 
@@ -46,7 +46,7 @@ public class LoggedIn extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_logged_in);
+        setContentView(R.layout.activity_material_search);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
