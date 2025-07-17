@@ -78,14 +78,11 @@ public class SearchPDF extends AppCompatActivity {
             return insets;
         });
 
-
         loadJson();
-
 
         searchEditText = findViewById(R.id.searchEditText);
         resultContainer = findViewById(R.id.resultContainer);
 
-        // Text change listener
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -111,39 +108,17 @@ public class SearchPDF extends AppCompatActivity {
             int a = inputStream.read(buffer);
 
             String json = new String(buffer, StandardCharsets.UTF_8);
-            Log.d("futyi", json);
             JSONArray jsonArray = new JSONArray(json);
-            Log.d("futyi", "vau" + jsonArray);
             int max=jsonArray.length();
-            Log.d("futyi", String.valueOf(max));
-
-            Log.d("futyi","loadJson :" + USERNAME + SERVER_IP + PASSWORD + SHARE_NAME + FOLDER_PATH);
-
-            Log.e("futyi","loadJson :" + USERNAME + SERVER_IP + PASSWORD + SHARE_NAME + FOLDER_PATH);
-
-            Log.d("futyi", "fostartaly");
-
 
             for (int i=0;i<max;i++) {
-
-                Log.d("futyi","loadJson :" + USERNAME + SERVER_IP + PASSWORD + SHARE_NAME + FOLDER_PATH);
-
-                Log.e("futyi","loadJson :" + USERNAME + SERVER_IP + PASSWORD + SHARE_NAME + FOLDER_PATH);
-
                 JSONObject jsonObject=jsonArray.getJSONObject(i);
                 USERNAME = jsonObject.getString("username");
                 SERVER_IP = jsonObject.getString("nas_ip");
                 PASSWORD = jsonObject.getString("password");
                 SHARE_NAME = jsonObject.getString("share_name");
                 FOLDER_PATH = jsonObject.getString("folder_path");
-
-                Log.d("futyi","loadJson :" + USERNAME + SERVER_IP + PASSWORD + SHARE_NAME + FOLDER_PATH);
-
-                Log.e("futyi","loadJson :" + USERNAME + SERVER_IP + PASSWORD + SHARE_NAME + FOLDER_PATH);
-
             }
-
-
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -188,12 +163,26 @@ public class SearchPDF extends AppCompatActivity {
                 File cacheDir = getCacheDir();
                 File tempFile = new File(cacheDir, fileName);
 
+
                 // Connect to NAS and download file
                 SMBClient client = new SMBClient();
                 try (Connection connection = client.connect(SERVER_IP)) {
                     Session session = connection.authenticate(
                             new AuthenticationContext(USERNAME, PASSWORD.toCharArray(), "DOMAIN")
+
                     );
+                    /*A config.json-nek igy kell kineznie hogy mukodjon:
+                    Fontos hogy a "/" jelek is a helyukon legyenek
+                    [
+                         {
+                          "nas_ip": "192.168.255.15",
+                          "share_name": "Lectra",
+                          "folder_path": "Adatbank/BBSYNC/BB_PDF/APOLLO/",
+                          "username": "unicon",
+                          "password": "Unicornis911"
+                         }
+                    ]
+                     */
                     try (DiskShare share = (DiskShare) session.connectShare(SHARE_NAME)) {
                         String filePath = FOLDER_PATH + fileName;
                         try (com.hierynomus.smbj.share.File smbFile = share.openFile(
@@ -206,7 +195,7 @@ public class SearchPDF extends AppCompatActivity {
 
                             try (InputStream is = smbFile.getInputStream();
                                  OutputStream os = new FileOutputStream(tempFile)) {
-                                byte[] buffer = new byte[8192];
+                                byte[] buffer = new byte[16384];
                                 int bytesRead;
                                 while ((bytesRead = is.read(buffer)) != -1) {
                                     os.write(buffer, 0, bytesRead);
