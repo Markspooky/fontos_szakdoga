@@ -27,9 +27,6 @@ public class LoggedIn extends AppCompatActivity {
     EditText searchEditText;
     LinearLayout resultContaier;
 
-
-
-
     static class Asd {
         String name, ip, type, color;
         int mekkoraafasza;
@@ -123,7 +120,6 @@ public class LoggedIn extends AppCompatActivity {
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.detailed_info);
 
-        //ScrollView SV=dialog.findViewById(R.id.detaileditem_SV);
         TextView textView = dialog.findViewById(R.id.textView);
 
         textView.setTextSize(25);

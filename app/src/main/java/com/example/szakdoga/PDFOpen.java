@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.View;
@@ -32,10 +31,6 @@ import com.rajat.pdfviewer.util.ToolbarTitleBehavior;
 import com.rajat.pdfviewer.util.saveTo;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 public class PDFOpen extends AppCompatActivity {
 
@@ -77,7 +72,6 @@ public class PDFOpen extends AppCompatActivity {
                         e.printStackTrace();
                         Toast.makeText(this, "Engedély nem sikerült!", Toast.LENGTH_SHORT).show();
                     }
-                    //TODO Kivalasztva: <filename>
                     launchPdfFromUri(uri.toString(),displayName );
                 }
             }
