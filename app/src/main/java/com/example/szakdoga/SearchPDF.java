@@ -88,7 +88,7 @@ public class SearchPDF extends AppCompatActivity {
         });
         loader = findViewById(R.id.loader);
 
-        /*JSON betoltese*/
+        ///*Loading config.json*\\\
         loadJson();
 
         searchEditText = findViewById(R.id.searchEditText);
@@ -98,10 +98,11 @@ public class SearchPDF extends AppCompatActivity {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
             @Override public void afterTextChanged(Editable s) {
-                String query = s.toString().trim();
-                if (query.isEmpty()) {
+                String rawQuery = s.toString();
+                String query = rawQuery.trim();
+                if (query.isEmpty() && rawQuery.isEmpty()) {
                     fetchItemsFromNas(currentPath);
-                } else {
+                } else if (query.length() >= 3) {
                     searchRecursivelyOnNas(FOLDER_PATH, query);
                 }
             }
@@ -115,6 +116,7 @@ public class SearchPDF extends AppCompatActivity {
 
         fetchItemsFromNas(currentPath);
     }
+
     //**************************************************Getting NAS config from JSON**************************************************\\
     private void loadJson() {
         try (InputStream inputStream = getAssets().open("config.json")) {
@@ -158,6 +160,7 @@ public class SearchPDF extends AppCompatActivity {
             }
         }).start();
     }
+
     //************************************************** **************************************************\\
     private void recursiveSearch(DiskShare share, String path, String query, List<PDF> resultList) {
         for (FileIdBothDirectoryInformation item : share.list(path)) {
@@ -173,8 +176,6 @@ public class SearchPDF extends AppCompatActivity {
             }
         }
     }
-
-
 
     //**************************************************Getting PDFs from Server**************************************************\\
     private void fetchItemsFromNas(String folderPath) {
@@ -216,6 +217,7 @@ public class SearchPDF extends AppCompatActivity {
         }).start();
     }
 
+    //**************************************************Opening PDFs from Server**************************************************\\
     private void openPdfFromNas(String fullFilePath) {
         new Thread(() -> {
             try {
@@ -264,6 +266,7 @@ public class SearchPDF extends AppCompatActivity {
         }).start();
     }
 
+    //**************************************************Responsible for opening a PDF in a new "window"**************************************************\\
     private void launchPdf(String path, String fileName) {
         Toast.makeText(this, "PDF megnyitása: " + fileName, Toast.LENGTH_SHORT).show();
 
@@ -279,6 +282,16 @@ public class SearchPDF extends AppCompatActivity {
         ));
     }
 
+
+    private String normalizePath(String path) {
+        if (path.endsWith("/")) {
+            return path.substring(0, path.length() - 1);
+        }
+        return path;
+    }
+
+
+    //**************************************************Dynamic search through Folders**************************************************\\
     @SuppressLint("SetTextI18n")
     private void updateResultsWithFolders(List<String> folders, List<PDF> pdfs) {
 
@@ -287,12 +300,11 @@ public class SearchPDF extends AppCompatActivity {
         String lastPath = currentPath;
         currentPath = lastPath;
 
-        if (!lastPath.equals(FOLDER_PATH)) {
+        if (!normalizePath(lastPath).equals(normalizePath(FOLDER_PATH))) {
             Button backBtn = new Button(this);
             backBtn.setText("<-- Vissza");
             backBtn.setOnClickListener(v -> {
                 String parentPath;
-
 
                 if (currentPath.startsWith(FOLDER_PATH) && currentPath.length() > FOLDER_PATH.length()) {
                     parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
@@ -302,7 +314,6 @@ public class SearchPDF extends AppCompatActivity {
                 } else {
                     parentPath = FOLDER_PATH;
                 }
-
                 currentPath = parentPath;
                 fetchItemsFromNas(parentPath);
             });
@@ -339,7 +350,7 @@ public class SearchPDF extends AppCompatActivity {
             resultContainer.addView(btn);
         }
     }
-
+    //**************************************************Dynamic search inside a Folder**************************************************\\
     @SuppressLint("SetTextI18n")
     private void updateResults(String query) {
         resultContainer.removeAllViews();
@@ -363,13 +374,13 @@ public class SearchPDF extends AppCompatActivity {
                 }
             }
         }
-        if (query.isEmpty() || query.length() <= 2) {
-            resultContainer.removeAllViews();
+        if (query.length() < 3) {
+            return;
         }
 Log.d("kilimanjaro", String.valueOf(resultContainer.getChildCount()));
     }
 
-
+    //**************************************************Custom button for every PDF and BackButton**************************************************\\
     private void styleButton(Button btn) {
         btn.setPadding(30, 30, 30, 30);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
@@ -385,11 +396,10 @@ Log.d("kilimanjaro", String.valueOf(resultContainer.getChildCount()));
         btn.setElevation(1);
     }
 
-    //currentpath kimentese bugok elkerulese vegett
+    ///Saving the current path so bugs don't appear
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putString("currentPath", currentPath);
     }
-
 }
