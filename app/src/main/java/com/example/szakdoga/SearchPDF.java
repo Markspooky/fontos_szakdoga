@@ -11,9 +11,11 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -45,13 +47,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Objects;
+
 
 public class SearchPDF extends AppCompatActivity {
 
     EditText searchEditText;
     LinearLayout resultContainer;
     private String currentPath = "";
+    ProgressBar loader;
+
 
     private String SERVER_IP;
     private String SHARE_NAME;
@@ -75,14 +79,16 @@ public class SearchPDF extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_material_search);
+        setContentView(R.layout.activity_search_pdf);
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+        loader = findViewById(R.id.loader);
 
+        /*JSON betoltese*/
         loadJson();
 
         searchEditText = findViewById(R.id.searchEditText);
@@ -100,8 +106,14 @@ public class SearchPDF extends AppCompatActivity {
                 }
             }
         });
+        //currentpath betoltese hogy ne FOLDER_PATH-ra hagyatkozzunk
+        if (savedInstanceState != null) {
+            currentPath = savedInstanceState.getString("currentPath", FOLDER_PATH);
+        } else {
+            currentPath = FOLDER_PATH;
+        }
 
-        fetchItemsFromNas(FOLDER_PATH);
+        fetchItemsFromNas(currentPath);
     }
     //**************************************************Getting NAS config from JSON**************************************************\\
     private void loadJson() {
@@ -216,7 +228,6 @@ public class SearchPDF extends AppCompatActivity {
                     Session session = connection.authenticate(
                             new AuthenticationContext(USERNAME, PASSWORD.toCharArray(), "")
                     );
-
                     try (DiskShare share = (DiskShare) session.connectShare(SHARE_NAME)) {
                         try (com.hierynomus.smbj.share.File smbFile = share.openFile(
                                 fullFilePath,
@@ -225,7 +236,6 @@ public class SearchPDF extends AppCompatActivity {
                                 SMB2ShareAccess.ALL,
                                 SMB2CreateDisposition.FILE_OPEN,
                                 null)) {
-
                             try (InputStream is = smbFile.getInputStream();
                                  OutputStream os = new FileOutputStream(tempFile)) {
                                 byte[] buffer = new byte[16384];
@@ -238,12 +248,18 @@ public class SearchPDF extends AppCompatActivity {
                     }
                 }
 
-                runOnUiThread(() -> launchPdf(tempFile.getAbsolutePath(), fileName));
+                runOnUiThread(() -> {
+                    loader.setVisibility(View.GONE);
+                    launchPdf(tempFile.getAbsolutePath(), fileName);
+                });
 
             } catch (Exception e) {
                 Log.e("PDF_OPEN", "Hiba a PDF megnyitásakor", e);
-                runOnUiThread(() ->
-                        Toast.makeText(this, "Hiba a PDF megnyitásakor", Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> {
+                    loader.setVisibility(View.GONE);  // Elrejtjük hiba esetén is
+                    Toast.makeText(this, "Hiba a PDF megnyitásakor", Toast.LENGTH_SHORT).show();
+                });
+
             }
         }).start();
     }
@@ -265,16 +281,18 @@ public class SearchPDF extends AppCompatActivity {
 
     @SuppressLint("SetTextI18n")
     private void updateResultsWithFolders(List<String> folders, List<PDF> pdfs) {
+
         resultContainer.removeAllViews();
 
         String lastPath = currentPath;
-        currentPath = lastPath;  // opcionális, ha biztosítani akarjuk sorrendet
+        currentPath = lastPath;
 
         if (!lastPath.equals(FOLDER_PATH)) {
             Button backBtn = new Button(this);
             backBtn.setText("<-- Vissza");
             backBtn.setOnClickListener(v -> {
-                String parentPath = currentPath;
+                String parentPath;
+
 
                 if (currentPath.startsWith(FOLDER_PATH) && currentPath.length() > FOLDER_PATH.length()) {
                     parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
@@ -292,9 +310,6 @@ public class SearchPDF extends AppCompatActivity {
             styleButton(backBtn);
             resultContainer.addView(backBtn);
         }
-//TODO PDF kattintasa utan animacio, hogy ne lehessen ujra megnyitni
-//TODO minimum 3 karakterrel kereses
-//TODO maximum 100 pdf kilistazasa kereses utan
 
         for (String folderName : folders) {
             Button btn = new Button(this);
@@ -312,9 +327,13 @@ public class SearchPDF extends AppCompatActivity {
             Button btn = new Button(this);
             btn.setText(pdf.name);
             btn.setOnClickListener(v -> {
+                v.setEnabled(false);
+                loader.setVisibility(View.VISIBLE);
+
                 String path = currentPath;
                 if (!path.endsWith("/")) path += "/";
                 openPdfFromNas(path + pdf.name);
+                v.postDelayed(() -> v.setEnabled(true), 2000);
             });
             styleButton(btn);
             resultContainer.addView(btn);
@@ -324,15 +343,30 @@ public class SearchPDF extends AppCompatActivity {
     @SuppressLint("SetTextI18n")
     private void updateResults(String query) {
         resultContainer.removeAllViews();
-        for (PDF pdf : allPdf) {
-            if (pdf.name.toLowerCase().contains(query.toLowerCase())) {
-                Button btn = new Button(this);
-                btn.setText(pdf.name.substring(pdf.name.lastIndexOf('/') + 1) + "\n📁 " + pdf.name.substring(0, pdf.name.lastIndexOf('/')));
-                btn.setOnClickListener(v -> openPdfFromNas(pdf.name));
-                styleButton(btn);
-                resultContainer.addView(btn);
+        if (query.length() >= 3) {
+            for (PDF pdf : allPdf) {
+                if (pdf.name.toLowerCase().contains(query.toLowerCase())) {
+                    Button btn = new Button(this);
+                    btn.setText(pdf.name.substring(pdf.name.lastIndexOf('/') + 1) + "\n📁 " + pdf.name.substring(0, pdf.name.lastIndexOf('/')));
+                    btn.setOnClickListener(v -> {
+                        v.setEnabled(false);
+                        openPdfFromNas(pdf.name);
+                        loader.setVisibility(View.VISIBLE);
+
+                        v.postDelayed(() -> v.setEnabled(true), 2000);
+                    });
+                    styleButton(btn);
+                    resultContainer.addView(btn);
+                }
+                if (resultContainer.getChildCount() >= 100) {
+                    break;
+                }
             }
         }
+        if (query.isEmpty() || query.length() <= 2) {
+            resultContainer.removeAllViews();
+        }
+Log.d("kilimanjaro", String.valueOf(resultContainer.getChildCount()));
     }
 
 
@@ -350,4 +384,12 @@ public class SearchPDF extends AppCompatActivity {
         btn.setTextColor(Color.BLACK);
         btn.setElevation(1);
     }
+
+    //currentpath kimentese bugok elkerulese vegett
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString("currentPath", currentPath);
+    }
+
 }

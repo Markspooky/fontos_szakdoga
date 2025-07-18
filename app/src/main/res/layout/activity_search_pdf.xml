@@ -9,41 +9,66 @@
     android:background="@color/background"
     style="@style/Bars">
 
-    <EditText
-        android:id="@+id/searchEditText"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:hint="PDF neve"
-        android:textSize="20sp"
-        android:padding="12dp"
-        android:background="@drawable/rounded_edittext"
-        android:inputType="text"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        android:layout_margin="16dp" />
-
-    <ScrollView
+    <!-- FrameLayout a loader és tartalom körül -->
+    <FrameLayout
+        android:id="@+id/frameWrapper"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="16dp"
-        android:fillViewport="true"
-        android:id="@+id/item_SV"
-        app:layout_constraintTop_toBottomOf="@id/searchEditText"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <LinearLayout
-            android:id="@+id/resultContainer"
+        <!-- ConstraintLayout a tartalomnak -->
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:gravity="center_horizontal" />
+            android:layout_height="match_parent">
 
-    </ScrollView>
+            <EditText
+                android:id="@+id/searchEditText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:hint="PDF neve"
+                android:textSize="20sp"
+                android:padding="12dp"
+                android:background="@drawable/rounded_edittext"
+                android:inputType="text"
+                android:layout_margin="16dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <ScrollView
+                android:id="@+id/item_SV"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="16dp"
+                android:fillViewport="true"
+                app:layout_constraintTop_toBottomOf="@id/searchEditText"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <LinearLayout
+                    android:id="@+id/resultContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:gravity="center_horizontal" />
+            </ScrollView>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- Középen animáció -->
+        <ProgressBar
+            android:id="@+id/loader"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            android:visibility="gone"
+            style="?android:attr/progressBarStyleLarge" />
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
