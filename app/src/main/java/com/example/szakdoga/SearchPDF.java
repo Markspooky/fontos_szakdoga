@@ -336,7 +336,7 @@ public class SearchPDF extends AppCompatActivity {
 
         for (PDF pdf : pdfs) {
             Button btn = new Button(this);
-            btn.setText(pdf.name);
+            btn.setText("📄 " + pdf.name);
             btn.setOnClickListener(v -> {
                 v.setEnabled(false);
                 loader.setVisibility(View.VISIBLE);
@@ -358,7 +358,7 @@ public class SearchPDF extends AppCompatActivity {
             for (PDF pdf : allPdf) {
                 if (pdf.name.toLowerCase().contains(query.toLowerCase())) {
                     Button btn = new Button(this);
-                    btn.setText(pdf.name.substring(pdf.name.lastIndexOf('/') + 1) + "\n📁 " + pdf.name.substring(0, pdf.name.lastIndexOf('/')));
+                    btn.setText("📄 " + pdf.name.substring(pdf.name.lastIndexOf('/') + 1) + "\n📁 " + pdf.name.substring(0, pdf.name.lastIndexOf('/')));
                     btn.setOnClickListener(v -> {
                         v.setEnabled(false);
                         openPdfFromNas(pdf.name);
