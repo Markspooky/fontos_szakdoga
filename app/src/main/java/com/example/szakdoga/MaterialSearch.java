@@ -81,7 +81,9 @@ public class MaterialSearch extends AppCompatActivity {
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                 clearButton.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE);
             }
-            @Override public void afterTextChanged(Editable s) {}
+            @Override public void afterTextChanged(Editable s) {
+                updateResults(s.toString());
+            }
         });
 
         clearButton.setOnClickListener(v -> {
@@ -176,7 +178,7 @@ public class MaterialSearch extends AppCompatActivity {
     private void updateResults(String query) {
         resultContaier.removeAllViews();
         for(Cerna cerna : res) {
-            if (cerna.name.toUpperCase().contains(query.toUpperCase())) {
+            if (cerna.prettyDetails.toUpperCase().contains(query.toUpperCase())) {
                 Button btn = new Button(this);
                 btn.setText(cerna.prettyDetails);
                 btn.setPadding(30,30,30,30);
