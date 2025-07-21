@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
@@ -67,7 +68,7 @@ public class MaterialSearch extends AppCompatActivity {
             return insets;
         });
 
-
+        ImageView clearButton = findViewById(R.id.clearButton);
         searchEditText = findViewById(R.id.searchEditText);
         resultContaier = findViewById(R.id.resultContainer);
 
@@ -76,18 +77,15 @@ public class MaterialSearch extends AppCompatActivity {
 
 
         searchEditText.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                updateResults(s.toString());
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                clearButton.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE);
             }
+            @Override public void afterTextChanged(Editable s) {}
+        });
 
-
+        clearButton.setOnClickListener(v -> {
+            searchEditText.setText("");
         });
 
         loadCsvFromNas("teszt/cernatablazat.csv", new CsvFileCallback() {
@@ -102,7 +100,6 @@ public class MaterialSearch extends AppCompatActivity {
         });
 
     }
-
     private void loadCsvFromNas(String csvFullPath, CsvFileCallback callback) {
         new Thread(() -> {
             SMBClient client = new SMBClient();
@@ -178,12 +175,10 @@ public class MaterialSearch extends AppCompatActivity {
     @SuppressLint("SetTextI18n")
     private void updateResults(String query) {
         resultContaier.removeAllViews();
-        int i =0;
         for(Cerna cerna : res) {
-            i++;
             if (cerna.name.toUpperCase().contains(query.toUpperCase())) {
                 Button btn = new Button(this);
-                btn.setText(cerna.name);
+                btn.setText(cerna.prettyDetails);
                 btn.setPadding(30,30,30,30);
                 LinearLayout.LayoutParams vau = new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -198,33 +193,10 @@ public class MaterialSearch extends AppCompatActivity {
                 btn.setLayoutParams(vau);
                 resultContaier.addView(btn);
 
-                btn.setOnClickListener(v -> showDialog(cerna));
             }
          if (resultContaier.getChildCount() > 100) {break;}
         }
     }
-    @SuppressLint("SetTextI18n")
-    private void showDialog(Cerna cerna) {
-
-        Dialog dialog = new Dialog(this);
-        dialog.setContentView(R.layout.detailed_info);
-
-        TextView textView = dialog.findViewById(R.id.textView);
-
-        textView.setTextSize(25);
-        textView.setText(cerna.prettyDetails);
-
-
-        ImageView dialog_close = dialog.findViewById(R.id.btn_close);
-
-        dialog_close.setOnClickListener(v -> dialog.dismiss());
-
-        Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawableResource(R.drawable.bg_window);
-
-
-        dialog.show();
-    }
-
 
 }
 
