@@ -6,14 +6,17 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-
 public class MainActivity extends AppCompatActivity {
+
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
         belepes.startAnimation(anim2);
         pdfek.startAnimation(anim3);
     }
+
     //**************************************************Going to MaterialSearch**************************************************\\
     public void loggingIn(View view) {
         Intent intent = new Intent(MainActivity.this, MaterialSearch.class);

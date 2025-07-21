@@ -2,15 +2,18 @@ package com.example.szakdoga;
 
 import android.annotation.SuppressLint;
 import android.app.Dialog;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,8 +21,18 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import java.util.Arrays;
-import java.util.List;
+import com.hierynomus.msdtyp.AccessMask;
+import com.hierynomus.mssmb2.SMB2CreateDisposition;
+import com.hierynomus.mssmb2.SMB2ShareAccess;
+import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.share.DiskShare;
+
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.Objects;
 
 public class MaterialSearch extends AppCompatActivity {
@@ -27,19 +40,20 @@ public class MaterialSearch extends AppCompatActivity {
     EditText searchEditText;
     LinearLayout resultContaier;
 
-    static class Asd {
-        String name, ip, type, color;
-        int mekkoraafasza;
-        Asd(String name, String ip, String type, String color, int mekkoraafasza) {
-            this.name = name;
-            this.ip = ip;
-            this.type = type;
-            this.color = color;
-            this.mekkoraafasza = mekkoraafasza;
-        }
-}
+    ArrayList<Cerna> res = new ArrayList<>();
 
-    List<Asd> allRouters;
+
+    static class Cerna {
+        String name;
+        String prettyDetails;
+
+        Cerna(String name, String prettyDetails) {
+            this.name = name;
+            this.prettyDetails = prettyDetails;
+        }
+    }
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,17 +71,8 @@ public class MaterialSearch extends AppCompatActivity {
         searchEditText = findViewById(R.id.searchEditText);
         resultContaier = findViewById(R.id.resultContainer);
 
-
-
-        allRouters = Arrays.asList(
-                new Asd("TP-Link AX3000", "192.168.0.1", "WiFi 6", "zold", 14),
-                new Asd("Asus RT-AC68U", "192.168.1.1", "AC1900", "fekete", 20),
-                new Asd("Netgear Nighthawk", "192.168.0.254", "Gaming", "kek", 2),
-                new Asd("Tenda AC10U", "192.168.8.1", "Budget", "rozsaszin", 30),
-                new Asd("keress ram more", "most azonnal", "Budget", "fekete", 1)
-        );
-
         updateResults("");
+
 
 
         searchEditText.addTextChangedListener(new TextWatcher() {
@@ -82,20 +87,103 @@ public class MaterialSearch extends AppCompatActivity {
                 updateResults(s.toString());
             }
 
+
+        });
+
+        loadCsvFromNas("teszt/cernatablazat.csv", new CsvFileCallback() {
+            public void onCsvLoaded(String csvContent) {
+                updateResults(searchEditText.getText().toString());
+            }
+
+            public void onError(Exception e) {
+                Toast.makeText(MaterialSearch.this, "Hiba a CSV betöltésekor", Toast.LENGTH_SHORT).show();
+                Log.d("miu", Objects.requireNonNull(e.getMessage()));
+            }
         });
 
     }
+
+    private void loadCsvFromNas(String csvFullPath, CsvFileCallback callback) {
+        new Thread(() -> {
+            SMBClient client = new SMBClient();
+
+            try (Connection connection = client.connect("192.168.255.15")) {
+                Session session = (connection).authenticate(
+                        new AuthenticationContext("unicon", "Unicornis911".toCharArray(), "")
+                );
+
+                try (DiskShare share = (DiskShare) session.connectShare("Unicon")) {
+                    try (com.hierynomus.smbj.share.File smbFile = share.openFile(
+                            csvFullPath,
+                            EnumSet.of(AccessMask.GENERIC_READ),
+                            null,
+                            SMB2ShareAccess.ALL,
+                            SMB2CreateDisposition.FILE_OPEN,
+                            null)) {
+
+                        try (InputStream is = smbFile.getInputStream()) {
+                            StringBuilder csvContent = new StringBuilder();
+                            byte[] buffer = new byte[8192];
+                            int bytesRead;
+                            while ((bytesRead = is.read(buffer)) != -1) {
+                                csvContent.append(new String(buffer, 0, bytesRead));
+                            }
+
+                            runOnUiThread(() -> {
+                                String[] lines = csvContent.toString().split("\\r?\\n");  // helyes sorokra bontás
+                                String[] header = lines[0].split(",");
+
+                                for (int i = 1; i < lines.length; i++) {
+
+                                    String[] values = lines[i].split(",");
+                                    StringBuilder builder = new StringBuilder();
+                                    for (int j = 0; j < header.length && j < values.length; j++) {
+                                        builder.append(header[j].trim()).append(":\n").append(values[j].trim()).append("\n\n");
+                                    }
+                                    res.add(new Cerna(values[0], builder.toString()));
+
+                                }
+
+                            });
+
+                            runOnUiThread(() -> {
+                                callback.onCsvLoaded(csvContent.toString());
+                            });
+
+                        }
+                    }
+                }
+
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    Log.e("CSV_LOAD", "Hiba történt a fájl betöltésekor", e);
+                    callback.onError(e);
+                });
+            }
+
+        }).start();
+    }
+
+
+
+
+    interface CsvFileCallback {
+        void onCsvLoaded(String csvContent);
+        void onError(Exception e);
+    }
+
 
     //dinamikus kereso
     //egyelore megadott adatokbol mukszik
     @SuppressLint("SetTextI18n")
     private void updateResults(String query) {
         resultContaier.removeAllViews();
-
-        for(Asd asd : allRouters) {
-            if (asd.name.toLowerCase().contains(query.toLowerCase())) {
+        int i =0;
+        for(Cerna cerna : res) {
+            i++;
+            if (cerna.name.toUpperCase().contains(query.toUpperCase())) {
                 Button btn = new Button(this);
-                btn.setText("Nev: " + asd.name + "\nIP:" + asd.ip + "\nTipus: " + asd.type);
+                btn.setText(cerna.name);
                 btn.setPadding(30,30,30,30);
                 LinearLayout.LayoutParams vau = new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -104,18 +192,19 @@ public class MaterialSearch extends AppCompatActivity {
                 btn.setTextSize(25);
                 btn.setBackgroundResource(R.drawable.rounded_edittext);
                 btn.setTextAlignment(ViewGroup.TEXT_ALIGNMENT_VIEW_START);
-                btn.setTextColor(android.graphics.Color.BLACK);
+                btn.setTextColor(Color.BLACK);
                 btn.setElevation(1);
                 vau.setMargins(0,0,0,30);
                 btn.setLayoutParams(vau);
                 resultContaier.addView(btn);
 
-                btn.setOnClickListener(v -> showDialog(asd));
+                btn.setOnClickListener(v -> showDialog(cerna));
             }
+         if (resultContaier.getChildCount() > 100) {break;}
         }
     }
     @SuppressLint("SetTextI18n")
-    private void showDialog(Asd asd) {
+    private void showDialog(Cerna cerna) {
 
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.detailed_info);
@@ -123,7 +212,7 @@ public class MaterialSearch extends AppCompatActivity {
         TextView textView = dialog.findViewById(R.id.textView);
 
         textView.setTextSize(25);
-        textView.setText("Nev: " + asd.name + "\nIP:" + asd.ip + "\nTipus: " + asd.type  + "\nSzin: " + asd.color +  "\nMeret: " + asd.mekkoraafasza);
+        textView.setText(cerna.prettyDetails);
 
 
         ImageView dialog_close = dialog.findViewById(R.id.btn_close);

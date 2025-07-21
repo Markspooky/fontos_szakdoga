@@ -282,7 +282,6 @@ public class SearchPDF extends AppCompatActivity {
         ));
     }
 
-
     private String normalizePath(String path) {
         if (path.endsWith("/")) {
             return path.substring(0, path.length() - 1);
@@ -369,7 +368,7 @@ public class SearchPDF extends AppCompatActivity {
                     styleButton(btn);
                     resultContainer.addView(btn);
                 }
-                if (resultContainer.getChildCount() >= 100) {
+                if (resultContainer.getChildCount() > 100) {
                     break;
                 }
             }
@@ -377,7 +376,6 @@ public class SearchPDF extends AppCompatActivity {
         if (query.length() < 3) {
             return;
         }
-Log.d("kilimanjaro", String.valueOf(resultContainer.getChildCount()));
     }
 
     //**************************************************Custom button for every PDF and BackButton**************************************************\\
