@@ -107,7 +107,7 @@ public class SearchPDF extends AppCompatActivity {
                 }
             }
         });
-        //currentpath betoltese hogy ne FOLDER_PATH-ra hagyatkozzunk
+        //**************************************************Saving the cuurentPath, so the back button will work normally**************************************************\\
         if (savedInstanceState != null) {
             currentPath = savedInstanceState.getString("currentPath", FOLDER_PATH);
         } else {
@@ -138,7 +138,7 @@ public class SearchPDF extends AppCompatActivity {
         }
     }
 
-    //************************************************** **************************************************\\
+    //**************************************************Searhing recursively through the SMB**************************************************\\
     private void searchRecursivelyOnNas(String startPath, String query) {
         new Thread(() -> {
             SMBClient client = new SMBClient();
@@ -161,7 +161,7 @@ public class SearchPDF extends AppCompatActivity {
         }).start();
     }
 
-    //************************************************** **************************************************\\
+    //**************************************************Search recursively through the Files on the SMB**************************************************\\
     private void recursiveSearch(DiskShare share, String path, String query, List<PDF> resultList) {
         for (FileIdBothDirectoryInformation item : share.list(path)) {
             String name = item.getFileName();
@@ -282,12 +282,6 @@ public class SearchPDF extends AppCompatActivity {
         ));
     }
 
-    private String normalizePath(String path) {
-        if (path.endsWith("/")) {
-            return path.substring(0, path.length() - 1);
-        }
-        return path;
-    }
 
 
     //**************************************************Dynamic search through Folders**************************************************\\
@@ -400,4 +394,11 @@ public class SearchPDF extends AppCompatActivity {
         super.onSaveInstanceState(outState);
         outState.putString("currentPath", currentPath);
     }
+    private String normalizePath(String path) {
+        if (path.endsWith("/")) {
+            return path.substring(0, path.length() - 1);
+        }
+        return path;
+    }
+
 }
