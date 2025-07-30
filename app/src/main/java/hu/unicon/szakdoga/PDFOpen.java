@@ -1,4 +1,5 @@
-package com.example.szakdoga;
+package hu.unicon.szakdoga;
+
 
 import static android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
 
@@ -23,7 +24,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.example.szakdoga.databinding.PdfopenPageBinding;
+import hu.unicon.szakdoga.databinding.PdfopenPageBinding;
 import com.rajat.pdfviewer.PdfRendererView;
 import com.rajat.pdfviewer.PdfViewerActivity;
 import com.rajat.pdfviewer.util.CacheStrategy;

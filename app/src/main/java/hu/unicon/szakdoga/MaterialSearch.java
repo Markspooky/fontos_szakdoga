@@ -1,4 +1,4 @@
-package com.example.szakdoga;
+package hu.unicon.szakdoga;
 
 import android.annotation.SuppressLint;
 import android.graphics.Color;
@@ -36,12 +36,12 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.Objects;
 
 public class MaterialSearch extends AppCompatActivity {
 
     EditText searchEditText;
     LinearLayout resultContaier;
+
 
     ArrayList<Cerna> res = new ArrayList<>();
 
@@ -62,8 +62,6 @@ public class MaterialSearch extends AppCompatActivity {
         }
     }
 
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -76,14 +74,25 @@ public class MaterialSearch extends AppCompatActivity {
             return insets;
         });
 
+        loadJson();
+
+        String fileName = getIntent().getStringExtra("CSV_FILE_NAME");
+
+        if (fileName == null || fileName.isEmpty()) {
+            Toast.makeText(this, "Nincs fájl kiválasztva", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        FILE_PATH = FILE_PATH + fileName;
+
+
         ImageView clearButton = findViewById(R.id.clearButton);
         searchEditText = findViewById(R.id.searchEditText);
         resultContaier = findViewById(R.id.resultContainer);
 
-        loadJson();
 
         updateResults("");
-
 
 
         searchEditText.addTextChangedListener(new TextWatcher() {
@@ -107,7 +116,6 @@ public class MaterialSearch extends AppCompatActivity {
 
             public void onError(Exception e) {
                 Toast.makeText(MaterialSearch.this, "Hiba a CSV betöltésekor", Toast.LENGTH_SHORT).show();
-                Log.d("miu", Objects.requireNonNull(e.getMessage()));
             }
         });
 

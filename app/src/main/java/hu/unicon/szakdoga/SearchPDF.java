@@ -1,4 +1,5 @@
-package com.example.szakdoga;
+package hu.unicon.szakdoga;
+
 
 import android.annotation.SuppressLint;
 import android.graphics.Color;
@@ -47,7 +48,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-
 
 public class SearchPDF extends AppCompatActivity {
 
@@ -107,7 +107,7 @@ public class SearchPDF extends AppCompatActivity {
                 }
             }
         });
-        //**************************************************Saving the cuurentPath, so the back button will work normally**************************************************\\
+        //**************************************************Saving the currentPath, so the back button will work normally**************************************************\\
         if (savedInstanceState != null) {
             currentPath = savedInstanceState.getString("currentPath", FOLDER_PATH);
         } else {

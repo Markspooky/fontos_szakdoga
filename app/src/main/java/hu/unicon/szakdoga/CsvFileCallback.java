@@ -1,4 +1,5 @@
-package com.example.szakdoga;
+package hu.unicon.szakdoga;
+
 
 public interface CsvFileCallback {
     void onCsvLoaded(String csvContent);

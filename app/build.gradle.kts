@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.szakdoga"
+    namespace = "hu.unicon.szakdoga"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.szakdoga"
+        applicationId = "hu.unicon.szakdoga"
         minSdk = 27
         targetSdk = 35
         versionCode = 1
