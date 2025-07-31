@@ -1,12 +1,17 @@
 package hu.unicon.szakdoga;
 
-
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -24,6 +29,8 @@ import com.hierynomus.smbj.share.DiskShare;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -31,14 +38,17 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-
+    private String NAME;
     private String SERVER_IP;
     private String SHARE_NAME;
     private String FOLDER_PATH;
     private String USERNAME;
     private String PASSWORD;
+    private static final int REQUEST_CODE_IMPORT_JSON = 2001;
+    Button configButton;
 
 
+    @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -51,12 +61,15 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        loadJson();
+        //If I delete these two it will lagg very bad
+        SharedPreferences prefs = getSharedPreferences("config", MODE_PRIVATE);
+        String currentConfig = prefs.getString("active_name", null);
+
+        configButton = findViewById(R.id.load_config_button);
 
         View title = findViewById(R.id.title);
         View belepes = findViewById(R.id.belepes);
         View pdfek = findViewById(R.id.pdfek);
-
 
         Animation anim1 = AnimationUtils.loadAnimation(this, R.anim.fade_in_slide_up);
         Animation anim2 = AnimationUtils.loadAnimation(this, R.anim.fade_in_slide_up);
@@ -69,40 +82,136 @@ public class MainActivity extends AppCompatActivity {
         belepes.startAnimation(anim2);
         pdfek.startAnimation(anim3);
     }
-    //**************************************************Loading JSON**************************************************\\
-    private void loadJson() {
-        try (InputStream inputStream = getAssets().open("csv_config.json")) {
-            byte[] buffer = new byte[inputStream.available()];
-            inputStream.read(buffer);
-            String json = new String(buffer, StandardCharsets.UTF_8);
 
-            JSONArray jsonArray = new JSONArray(json);
-            JSONObject jsonObject = jsonArray.getJSONObject(0);
+    //***************************************************************\\
+    //******************** JSON Importálás **************************\\
+    //***************************************************************\\
 
-            USERNAME = jsonObject.getString("username");
-            SERVER_IP = jsonObject.getString("nas_ip");
-            PASSWORD = jsonObject.getString("password");
-            SHARE_NAME = jsonObject.getString("share_name");
-            FOLDER_PATH = jsonObject.getString("file_path");
+    public void menuPoint(View view) {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        startActivityForResult(intent, REQUEST_CODE_IMPORT_JSON);
+    }
 
-        } catch (Exception e) {
-            throw new RuntimeException("Hiba a config.json beolvasásakor", e);
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == REQUEST_CODE_IMPORT_JSON && resultCode == RESULT_OK && data != null) {
+            Uri uri = data.getData();
+            if (uri != null) {
+                importJsonFromUri(uri);
+            }
         }
     }
 
-    //**************************************************Going to MaterialSearch**************************************************\\
+    private void importJsonFromUri(Uri uri) {
+        try {
+            InputStream inputStream = getContentResolver().openInputStream(uri);
+            byte[] buffer = new byte[inputStream.available()];
+            inputStream.read(buffer);
+            inputStream.close();
+
+            String jsonContent = new String(buffer, StandardCharsets.UTF_8);
+            new JSONArray(jsonContent);
+
+            FileOutputStream fos = openFileOutput("config.json", MODE_PRIVATE);
+            fos.write(buffer);
+            fos.close();
+
+            Toast.makeText(this, "Konfigurációs fájl importálva", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Hiba az importálás során: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+
+
+    //***************************************************************\\
+    //******************** Konfig betöltés **************************\\
+    //***************************************************************\\
+
+    public void selectConfigFromJsonFile(View view) {
+        String fileName = "config.json";
+
+        try {
+            FileInputStream fis = openFileInput(fileName);
+            byte[] buffer = new byte[fis.available()];
+            fis.read(buffer);
+            fis.close();
+
+            String json = new String(buffer, StandardCharsets.UTF_8);
+            JSONArray jsonArray = new JSONArray(json);
+
+            List<String> configNames = new ArrayList<>();
+            List<JSONObject> configObjects = new ArrayList<>();
+
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject obj = jsonArray.getJSONObject(i);
+                configNames.add(obj.optString("name", "Névtelen " + i));
+                configObjects.add(obj);
+            }
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Válassz konfigurációt");
+
+
+            builder.setItems(configNames.toArray(new String[0]), (dialog, which) -> {
+                JSONObject selectedConfig = configObjects.get(which);
+                applyConfig(selectedConfig, fileName);
+            });
+
+            builder.setNegativeButton("Mégse", null);
+            builder.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Hiba a konfiguráció betöltésekor", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
+    private void applyConfig(JSONObject config, String fileName) {
+        try {
+            NAME = config.getString("name");
+            USERNAME = config.getString("username");
+            PASSWORD = config.getString("password");
+            SERVER_IP = config.getString("nas_ip");
+            SHARE_NAME = config.getString("share_name");
+            FOLDER_PATH = config.getString("file_path");
+
+
+            SharedPreferences prefs = getSharedPreferences("config", MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putString("active_file", fileName);
+            editor.putString("active_name", config.getString("name"));
+            editor.apply();
+
+            Toast.makeText(this, "Konfiguráció betöltve: " + config.getString("name"), Toast.LENGTH_SHORT).show();
+            configButton.setText(NAME);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Nem sikerült betölteni a konfigurációt", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    //***************************************************************\\
+    //******************** CSV kiválasztása *************************\\
+    //***************************************************************\\
+
     public void loggingIn(View view) {
-       showCsvSelectionDialog();
+        showCsvSelectionDialog();
     }
 
-    //**************************************************Going to PDFOpen**************************************************\\
-    public void pdfOpen(View view) {
-        Intent intent = new Intent(MainActivity.this, PDFOpen.class);
-        startActivity(intent);
-
-    }
-    //**************************************************POP-UP Dialog for CSVs**************************************************\\
     private void showCsvSelectionDialog() {
+        if (SERVER_IP == null || USERNAME == null || PASSWORD == null || SHARE_NAME == null || FOLDER_PATH == null) {
+            Toast.makeText(this, "Előbb válassz konfigurációt!", Toast.LENGTH_LONG).show();
+            return;
+        }
+
         new Thread(() -> {
             SMBClient client = new SMBClient();
 
@@ -129,8 +238,6 @@ public class MainActivity extends AppCompatActivity {
 
                         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
                         builder.setTitle("Válassz CSV fájlt");
-
-
                         builder.setItems(csvFiles.toArray(new String[0]), (dialog, which) -> {
                             String selectedFile = csvFiles.get(which);
 
@@ -153,6 +260,15 @@ public class MainActivity extends AppCompatActivity {
             }
 
         }).start();
+    }
+
+    //***************************************************************\\
+    //*********************** PDF oldal *****************************\\
+    //***************************************************************\\
+
+    public void pdfOpen(View view) {
+        Intent intent = new Intent(MainActivity.this, PDFOpen.class);
+        startActivity(intent);
     }
 
 }

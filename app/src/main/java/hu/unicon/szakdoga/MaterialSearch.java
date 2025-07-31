@@ -127,7 +127,7 @@ public class MaterialSearch extends AppCompatActivity {
     }
     //**************************************************Getting NAS config from JSON**************************************************\\
     private void loadJson() {
-        try (InputStream inputStream = getAssets().open("csv_config.json")) {
+        try (InputStream inputStream = getAssets().open("config_csv.json")) {
             byte[] buffer = new byte[inputStream.available()];
             inputStream.read(buffer);
             String json = new String(buffer, StandardCharsets.UTF_8);
