@@ -39,6 +39,7 @@ import java.util.EnumSet;
 
 public class MaterialSearch extends AppCompatActivity {
 
+    private String NAME;
     EditText searchEditText;
     LinearLayout resultContaier;
 
@@ -74,12 +75,15 @@ public class MaterialSearch extends AppCompatActivity {
             return insets;
         });
 
-        loadJson();
-
+        SERVER_IP = getIntent().getStringExtra("NAS_IP");
+        USERNAME = getIntent().getStringExtra("USERNAME");
+        PASSWORD = getIntent().getStringExtra("PASSWORD");
+        SHARE_NAME = getIntent().getStringExtra("SHARE_NAME");
+        FILE_PATH = getIntent().getStringExtra("FILE_PATH");
         String fileName = getIntent().getStringExtra("CSV_FILE_NAME");
 
-        if (fileName == null || fileName.isEmpty()) {
-            Toast.makeText(this, "Nincs fájl kiválasztva", Toast.LENGTH_SHORT).show();
+        if (fileName == null || SERVER_IP == null || USERNAME == null || PASSWORD == null || SHARE_NAME == null || FILE_PATH == null) {
+            Toast.makeText(this, "Hiányos konfiguráció", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -115,6 +119,7 @@ public class MaterialSearch extends AppCompatActivity {
             }
 
             public void onError(Exception e) {
+
                 Toast.makeText(MaterialSearch.this, "Hiba a CSV betöltésekor", Toast.LENGTH_SHORT).show();
             }
         });
@@ -125,26 +130,7 @@ public class MaterialSearch extends AppCompatActivity {
         void onCsvLoaded(String csvContent);
         void onError(Exception e);
     }
-    //**************************************************Getting NAS config from JSON**************************************************\\
-    private void loadJson() {
-        try (InputStream inputStream = getAssets().open("config_csv.json")) {
-            byte[] buffer = new byte[inputStream.available()];
-            inputStream.read(buffer);
-            String json = new String(buffer, StandardCharsets.UTF_8);
 
-            JSONArray jsonArray = new JSONArray(json);
-            JSONObject jsonObject = jsonArray.getJSONObject(0);
-
-            USERNAME = jsonObject.getString("username");
-            SERVER_IP = jsonObject.getString("nas_ip");
-            PASSWORD = jsonObject.getString("password");
-            SHARE_NAME = jsonObject.getString("share_name");
-            FILE_PATH = jsonObject.getString("file_path");
-
-        } catch (Exception e) {
-            throw new RuntimeException("Hiba a config.json beolvasásakor", e);
-        }
-    }
 
     //**************************************************Loads CSV from NAS**************************************************\\
     private void loadCsvFromNas(String csvFullPath, CsvFileCallback callback) {

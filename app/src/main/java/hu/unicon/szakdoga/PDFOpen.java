@@ -70,7 +70,6 @@ public class PDFOpen extends AppCompatActivity {
                             displayName = myFile.getName();
                         }
                     } catch (SecurityException e) {
-                        e.printStackTrace();
                         Toast.makeText(this, "Engedély nem sikerült!", Toast.LENGTH_SHORT).show();
                     }
                     launchPdfFromUri(uri.toString(),displayName );

@@ -6,12 +6,11 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -35,10 +34,10 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
 
-    private String NAME;
     private String SERVER_IP;
     private String SHARE_NAME;
     private String FOLDER_PATH;
@@ -83,9 +82,7 @@ public class MainActivity extends AppCompatActivity {
         pdfek.startAnimation(anim3);
     }
 
-    //***************************************************************\\
-    //******************** JSON Importálás **************************\\
-    //***************************************************************\\
+    //********************JSON Importing**************************\\
 
     public void menuPoint(View view) {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -94,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
         startActivityForResult(intent, REQUEST_CODE_IMPORT_JSON);
     }
 
+    //*************Checks for codes when importing a JSON*************\\
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -106,9 +104,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    //***************Saves every JSON file as config.json****************\\
     private void importJsonFromUri(Uri uri) {
         try {
             InputStream inputStream = getContentResolver().openInputStream(uri);
+            assert inputStream != null;
             byte[] buffer = new byte[inputStream.available()];
             inputStream.read(buffer);
             inputStream.close();
@@ -122,16 +122,13 @@ public class MainActivity extends AppCompatActivity {
 
             Toast.makeText(this, "Konfigurációs fájl importálva", Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
-            e.printStackTrace();
             Toast.makeText(this, "Hiba az importálás során: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
 
 
-    //***************************************************************\\
-    //******************** Konfig betöltés **************************\\
-    //***************************************************************\\
+    //********************Loading the configuration**************************\\
 
     public void selectConfigFromJsonFile(View view) {
         String fileName = "config.json";
@@ -167,15 +164,14 @@ public class MainActivity extends AppCompatActivity {
             builder.show();
 
         } catch (Exception e) {
-            e.printStackTrace();
             Toast.makeText(this, "Hiba a konfiguráció betöltésekor", Toast.LENGTH_SHORT).show();
         }
     }
-
+//*****************This applies the current JSON file as the configuration******************\\
     @SuppressLint("SetTextI18n")
     private void applyConfig(JSONObject config, String fileName) {
         try {
-            NAME = config.getString("name");
+            String NAME = config.getString("name");
             USERNAME = config.getString("username");
             PASSWORD = config.getString("password");
             SERVER_IP = config.getString("nas_ip");
@@ -193,19 +189,17 @@ public class MainActivity extends AppCompatActivity {
             configButton.setText(NAME);
 
         } catch (Exception e) {
-            e.printStackTrace();
             Toast.makeText(this, "Nem sikerült betölteni a konfigurációt", Toast.LENGTH_SHORT).show();
         }
     }
 
-    //***************************************************************\\
-    //******************** CSV kiválasztása *************************\\
-    //***************************************************************\\
-
+    //********************Choosing CSV*************************\\
+    //Might delete later cuz I may wont need it
     public void loggingIn(View view) {
         showCsvSelectionDialog();
     }
 
+    //****************************If theres more than one CSV in a config, we can choose*****************************\\
     private void showCsvSelectionDialog() {
         if (SERVER_IP == null || USERNAME == null || PASSWORD == null || SHARE_NAME == null || FOLDER_PATH == null) {
             Toast.makeText(this, "Előbb válassz konfigurációt!", Toast.LENGTH_LONG).show();
@@ -236,35 +230,33 @@ public class MainActivity extends AppCompatActivity {
                             return;
                         }
 
-                        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                        builder.setTitle("Válassz CSV fájlt");
-                        builder.setItems(csvFiles.toArray(new String[0]), (dialog, which) -> {
-                            String selectedFile = csvFiles.get(which);
-
-                            Intent intent = new Intent(MainActivity.this, MaterialSearch.class);
-                            intent.putExtra("CSV_FILE_NAME", selectedFile);
-                            startActivity(intent);
-                        });
-
-                        builder.setNegativeButton("Mégse", null);
-                        builder.show();
+                        String selectedFile = csvFiles.get(0);
+                        Intent intent = new Intent(MainActivity.this, MaterialSearch.class);
+                        intent.putExtra("NAS_IP", SERVER_IP);
+                        intent.putExtra("USERNAME", USERNAME);
+                        intent.putExtra("PASSWORD", PASSWORD);
+                        intent.putExtra("SHARE_NAME", SHARE_NAME);
+                        intent.putExtra("FILE_PATH", FOLDER_PATH);
+                        intent.putExtra("CSV_FILE_NAME", selectedFile);
+                        startActivity(intent);
                     });
 
+                } catch (Exception e) {
+                    runOnUiThread(() ->
+                            Toast.makeText(MainActivity.this, "Send help pls: " + e.getMessage(), Toast.LENGTH_LONG).show());
                 }
 
             } catch (Exception e) {
-                runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, "Hiba a fájlok betöltésekor: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    e.printStackTrace();
-                });
+                runOnUiThread(() ->
+                        Toast.makeText(MainActivity.this, "Hiba a fájlok betöltésekor: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                );
             }
 
         }).start();
     }
 
-    //***************************************************************\\
-    //*********************** PDF oldal *****************************\\
-    //***************************************************************\\
+
+    //***********************Going to the PDF page*****************************\\
 
     public void pdfOpen(View view) {
         Intent intent = new Intent(MainActivity.this, PDFOpen.class);

@@ -1,0 +1,29 @@
+[
+  {
+    "name": "BB",
+    "nas_ip": "192.168.255.15",
+    "share_name": "Lectra",
+    "file_path": "Adatbank/BBSYNC/CERNA/",
+    "username": "unicon",
+    "password": "Unicornis911"
+  },
+
+
+  {
+    "name": "POLIFORM",
+    "nas_ip": "192.168.255.15",
+    "share_name": "Lectra",
+    "file_path": "Adatbank/POLIFORM/",
+    "username": "unicon",
+    "password": "Unicornis911"
+  },
+
+  {
+    "name": "PIANCA",
+    "nas_ip": "192.168.255.15",
+    "share_name": "Lectra",
+    "file_path": "Adatbank/PIANCA/",
+    "username": "unicon",
+    "password": "Unicornis911"
+  }
+]
