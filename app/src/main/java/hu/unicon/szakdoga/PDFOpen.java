@@ -37,6 +37,14 @@ public class PDFOpen extends AppCompatActivity {
 
     private PdfopenPageBinding binding;
 
+    private String NAME;
+    private String SERVER_IP;
+    private String SHARE_NAME;
+    private String PDF_PATH;
+    private String USERNAME;
+    private String PASSWORD;
+
+
 
     //A letoltesek mappaban turkalo filekereso
     @SuppressLint("Range")
@@ -93,6 +101,20 @@ public class PDFOpen extends AppCompatActivity {
             return insets;
         });
 
+
+        NAME = getIntent().getStringExtra("NAME");
+        SERVER_IP = getIntent().getStringExtra("NAS_IP");
+        USERNAME = getIntent().getStringExtra("USERNAME");
+        PASSWORD = getIntent().getStringExtra("PASSWORD");
+        SHARE_NAME = getIntent().getStringExtra("SHARE_NAME");
+        PDF_PATH = getIntent().getStringExtra("PDF_PATH");
+
+        if (NAME == null || SERVER_IP == null || USERNAME == null || PASSWORD == null || SHARE_NAME == null || PDF_PATH == null) {
+            Toast.makeText(this, "Hiányos konfiguráció A pdfopenes", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
         // Edge-to-edge layout
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
@@ -118,8 +140,15 @@ public class PDFOpen extends AppCompatActivity {
 
     public void pdfSearch(View view) {
         Intent intent = new Intent(PDFOpen.this, SearchPDF.class);
+        intent.putExtra("NAME", NAME);
+        intent.putExtra("NAS_IP", SERVER_IP);
+        intent.putExtra("USERNAME", USERNAME);
+        intent.putExtra("PASSWORD", PASSWORD);
+        intent.putExtra("SHARE_NAME", SHARE_NAME);
+        intent.putExtra("PDF_PATH", PDF_PATH);
         startActivity(intent);
     }
+
 
     private void setupPdfStatusListener() {
         binding.pdfView.setStatusListener(new PdfRendererView.StatusCallBack() {

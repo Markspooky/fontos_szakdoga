@@ -37,14 +37,10 @@ import com.rajat.pdfviewer.util.CacheStrategy;
 import com.rajat.pdfviewer.util.ToolbarTitleBehavior;
 import com.rajat.pdfviewer.util.saveTo;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -57,9 +53,10 @@ public class SearchPDF extends AppCompatActivity {
     ProgressBar loader;
 
 
+    private String NAME;
     private String SERVER_IP;
     private String SHARE_NAME;
-    private String FOLDER_PATH;
+    private String PDF_PATH;
     private String USERNAME;
     private String PASSWORD;
 
@@ -88,8 +85,18 @@ public class SearchPDF extends AppCompatActivity {
         });
         loader = findViewById(R.id.loader);
 
-        ///*Loading config.json*\\\
-        loadJson();
+        NAME = getIntent().getStringExtra("NAME");
+        SERVER_IP = getIntent().getStringExtra("NAS_IP");
+        USERNAME = getIntent().getStringExtra("USERNAME");
+        PASSWORD = getIntent().getStringExtra("PASSWORD");
+        SHARE_NAME = getIntent().getStringExtra("SHARE_NAME");
+        PDF_PATH = getIntent().getStringExtra("PDF_PATH");
+
+        if (NAME == null || SERVER_IP == null || USERNAME == null || PASSWORD == null || SHARE_NAME == null || PDF_PATH == null) {
+            Toast.makeText(this, "Hiányos konfiguráció a pdfsearchben", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
 
         searchEditText = findViewById(R.id.searchEditText);
         resultContainer = findViewById(R.id.resultContainer);
@@ -103,39 +110,18 @@ public class SearchPDF extends AppCompatActivity {
                 if (query.isEmpty() && rawQuery.isEmpty()) {
                     fetchItemsFromNas(currentPath);
                 } else if (query.length() >= 3) {
-                    searchRecursivelyOnNas(FOLDER_PATH, query);
+                    searchRecursivelyOnNas(PDF_PATH, query);
                 }
             }
         });
         //**************************************************Saving the currentPath, so the back button will work normally**************************************************\\
         if (savedInstanceState != null) {
-            currentPath = savedInstanceState.getString("currentPath", FOLDER_PATH);
+            currentPath = savedInstanceState.getString("currentPath", PDF_PATH);
         } else {
-            currentPath = FOLDER_PATH;
+            currentPath = PDF_PATH;
         }
 
         fetchItemsFromNas(currentPath);
-    }
-
-    //**************************************************Getting NAS config from JSON**************************************************\\
-    private void loadJson() {
-        try (InputStream inputStream = getAssets().open("config.json")) {
-            byte[] buffer = new byte[inputStream.available()];
-            inputStream.read(buffer);
-            String json = new String(buffer, StandardCharsets.UTF_8);
-
-            JSONArray jsonArray = new JSONArray(json);
-            JSONObject jsonObject = jsonArray.getJSONObject(0);
-
-            USERNAME = jsonObject.getString("username");
-            SERVER_IP = jsonObject.getString("nas_ip");
-            PASSWORD = jsonObject.getString("password");
-            SHARE_NAME = jsonObject.getString("share_name");
-            FOLDER_PATH = jsonObject.getString("folder_path");
-
-        } catch (Exception e) {
-            throw new RuntimeException("Hiba a config.json beolvasásakor", e);
-        }
     }
 
     //**************************************************Searhing recursively through the SMB**************************************************\\
@@ -185,7 +171,6 @@ public class SearchPDF extends AppCompatActivity {
                 Session session = connection.authenticate(
                         new AuthenticationContext(USERNAME, PASSWORD.toCharArray(), "")
                 );
-
                 try (DiskShare share = (DiskShare) session.connectShare(SHARE_NAME)) {
                     List<PDF> tempList = new ArrayList<>();
                     List<String> folderList = new ArrayList<>();
@@ -258,7 +243,7 @@ public class SearchPDF extends AppCompatActivity {
             } catch (Exception e) {
                 Log.e("PDF_OPEN", "Hiba a PDF megnyitásakor", e);
                 runOnUiThread(() -> {
-                    loader.setVisibility(View.GONE);  // Elrejtjük hiba esetén is
+                    loader.setVisibility(View.GONE);
                     Toast.makeText(this, "Hiba a PDF megnyitásakor", Toast.LENGTH_SHORT).show();
                 });
 
@@ -293,19 +278,19 @@ public class SearchPDF extends AppCompatActivity {
         String lastPath = currentPath;
         currentPath = lastPath;
 
-        if (!normalizePath(lastPath).equals(normalizePath(FOLDER_PATH))) {
+        if (!normalizePath(lastPath).equals(normalizePath(PDF_PATH))) {
             Button backBtn = new Button(this);
             backBtn.setText("<-- Vissza");
             backBtn.setOnClickListener(v -> {
                 String parentPath;
 
-                if (currentPath.startsWith(FOLDER_PATH) && currentPath.length() > FOLDER_PATH.length()) {
+                if (currentPath.startsWith(PDF_PATH) && currentPath.length() > PDF_PATH.length()) {
                     parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
                     if (parentPath.endsWith("/")) {
                         parentPath = parentPath.substring(0, parentPath.length() - 1);
                     }
                 } else {
-                    parentPath = FOLDER_PATH;
+                    parentPath = PDF_PATH;
                 }
                 currentPath = parentPath;
                 fetchItemsFromNas(parentPath);

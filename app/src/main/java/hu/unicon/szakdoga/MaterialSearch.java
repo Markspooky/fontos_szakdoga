@@ -29,17 +29,12 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumSet;
 
 public class MaterialSearch extends AppCompatActivity {
 
-    private String NAME;
     EditText searchEditText;
     LinearLayout resultContaier;
 
@@ -48,7 +43,7 @@ public class MaterialSearch extends AppCompatActivity {
 
     private String SERVER_IP;
     private String SHARE_NAME;
-    private String FILE_PATH;
+    private String CERNA_PATH;
     private String USERNAME;
     private String PASSWORD;
 
@@ -79,16 +74,16 @@ public class MaterialSearch extends AppCompatActivity {
         USERNAME = getIntent().getStringExtra("USERNAME");
         PASSWORD = getIntent().getStringExtra("PASSWORD");
         SHARE_NAME = getIntent().getStringExtra("SHARE_NAME");
-        FILE_PATH = getIntent().getStringExtra("FILE_PATH");
+        CERNA_PATH = getIntent().getStringExtra("CERNA_PATH");
         String fileName = getIntent().getStringExtra("CSV_FILE_NAME");
 
-        if (fileName == null || SERVER_IP == null || USERNAME == null || PASSWORD == null || SHARE_NAME == null || FILE_PATH == null) {
+        if (fileName == null || SERVER_IP == null || USERNAME == null || PASSWORD == null || SHARE_NAME == null || CERNA_PATH == null) {
             Toast.makeText(this, "Hiányos konfiguráció", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
 
-        FILE_PATH = FILE_PATH + fileName;
+        CERNA_PATH = CERNA_PATH + fileName;
 
 
         ImageView clearButton = findViewById(R.id.clearButton);
@@ -113,13 +108,13 @@ public class MaterialSearch extends AppCompatActivity {
             searchEditText.setText("");
         });
 
-        loadCsvFromNas(FILE_PATH, new CsvFileCallback() {
+        loadCsvFromNas(CERNA_PATH, new CsvFileCallback() {
             public void onCsvLoaded(String csvContent) {
                 updateResults(searchEditText.getText().toString());
             }
 
             public void onError(Exception e) {
-
+                Log.d("DEBUG_PATH", "CSV full path: " + CERNA_PATH);
                 Toast.makeText(MaterialSearch.this, "Hiba a CSV betöltésekor", Toast.LENGTH_SHORT).show();
             }
         });

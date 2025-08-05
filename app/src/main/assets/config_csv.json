@@ -3,26 +3,26 @@
     "name": "BB",
     "nas_ip": "192.168.255.15",
     "share_name": "Lectra",
-    "file_path": "Adatbank/BBSYNC/CERNA/",
+    "cerna_path": "Adatbank/BBSYNC/CERNA/",
+    "pdf_path":"Adatbank/BBSYNC/BB_PDF/",
     "username": "unicon",
     "password": "Unicornis911"
   },
-
-
   {
     "name": "POLIFORM",
     "nas_ip": "192.168.255.15",
     "share_name": "Lectra",
-    "file_path": "Adatbank/POLIFORM/",
+    "cerna_path": "Adatbank/POLIFORM/",
+    "pdf_path":"Adatbank/BBSYNC/BBPR4_PDF/",
     "username": "unicon",
     "password": "Unicornis911"
   },
-
   {
     "name": "PIANCA",
     "nas_ip": "192.168.255.15",
     "share_name": "Lectra",
-    "file_path": "Adatbank/PIANCA/",
+    "cerna_path": "Adatbank/PIANCA/",
+    "pdf_path":"Adatbank/BBSYNC/BB_PDF_REGI/",
     "username": "unicon",
     "password": "Unicornis911"
   }

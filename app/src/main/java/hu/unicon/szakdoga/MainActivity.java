@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -34,13 +33,14 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
+    private String NAME;
 
     private String SERVER_IP;
     private String SHARE_NAME;
-    private String FOLDER_PATH;
+    private String CERNA_PATH;
+    private String PDF_PATH;
     private String USERNAME;
     private String PASSWORD;
     private static final int REQUEST_CODE_IMPORT_JSON = 2001;
@@ -171,13 +171,13 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("SetTextI18n")
     private void applyConfig(JSONObject config, String fileName) {
         try {
-            String NAME = config.getString("name");
+            NAME = config.getString("name");
             USERNAME = config.getString("username");
             PASSWORD = config.getString("password");
             SERVER_IP = config.getString("nas_ip");
             SHARE_NAME = config.getString("share_name");
-            FOLDER_PATH = config.getString("file_path");
-
+            CERNA_PATH = config.getString("cerna_path");
+            PDF_PATH = config.getString("pdf_path");
 
             SharedPreferences prefs = getSharedPreferences("config", MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit();
@@ -192,16 +192,13 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Nem sikerült betölteni a konfigurációt", Toast.LENGTH_SHORT).show();
         }
     }
-
-    //********************Choosing CSV*************************\\
-    //Might delete later cuz I may wont need it
     public void loggingIn(View view) {
-        showCsvSelectionDialog();
+        configurationApplier();
     }
 
     //****************************If theres more than one CSV in a config, we can choose*****************************\\
-    private void showCsvSelectionDialog() {
-        if (SERVER_IP == null || USERNAME == null || PASSWORD == null || SHARE_NAME == null || FOLDER_PATH == null) {
+    private void configurationApplier() {
+        if (SERVER_IP == null || USERNAME == null || PASSWORD == null || SHARE_NAME == null || CERNA_PATH == null) {
             Toast.makeText(this, "Előbb válassz konfigurációt!", Toast.LENGTH_LONG).show();
             return;
         }
@@ -217,7 +214,7 @@ public class MainActivity extends AppCompatActivity {
                 try (DiskShare share = (DiskShare) session.connectShare(SHARE_NAME)) {
 
                     List<String> csvFiles = new ArrayList<>();
-                    for (com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation fileInfo : share.list(FOLDER_PATH)) {
+                    for (com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation fileInfo : share.list(CERNA_PATH)) {
                         String fileName = fileInfo.getFileName();
                         if (fileName.toLowerCase().endsWith(".csv")) {
                             csvFiles.add(fileName);
@@ -236,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
                         intent.putExtra("USERNAME", USERNAME);
                         intent.putExtra("PASSWORD", PASSWORD);
                         intent.putExtra("SHARE_NAME", SHARE_NAME);
-                        intent.putExtra("FILE_PATH", FOLDER_PATH);
+                        intent.putExtra("CERNA_PATH", CERNA_PATH);
                         intent.putExtra("CSV_FILE_NAME", selectedFile);
                         startActivity(intent);
                     });
@@ -259,8 +256,20 @@ public class MainActivity extends AppCompatActivity {
     //***********************Going to the PDF page*****************************\\
 
     public void pdfOpen(View view) {
+        if (SERVER_IP == null || USERNAME == null || PASSWORD == null || SHARE_NAME == null || PDF_PATH == null) {
+            Toast.makeText(this, "Előbb válassz konfigurációt!", Toast.LENGTH_LONG).show();
+            return;
+        }
+
         Intent intent = new Intent(MainActivity.this, PDFOpen.class);
+        intent.putExtra("NAME",NAME);
+        intent.putExtra("NAS_IP", SERVER_IP);
+        intent.putExtra("USERNAME", USERNAME);
+        intent.putExtra("PASSWORD", PASSWORD);
+        intent.putExtra("SHARE_NAME", SHARE_NAME);
+        intent.putExtra("PDF_PATH", PDF_PATH);
         startActivity(intent);
     }
+
 
 }
