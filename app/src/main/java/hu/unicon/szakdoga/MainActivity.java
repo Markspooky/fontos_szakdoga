@@ -4,20 +4,28 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.android.material.button.MaterialButton;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.connection.Connection;
@@ -33,6 +41,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.zip.Inflater;
 
 public class MainActivity extends AppCompatActivity {
     private String NAME;
@@ -41,10 +51,12 @@ public class MainActivity extends AppCompatActivity {
     private String SHARE_NAME;
     private String CERNA_PATH;
     private String PDF_PATH;
+//    private String PR4_PATH;
     private String USERNAME;
     private String PASSWORD;
     private static final int REQUEST_CODE_IMPORT_JSON = 2001;
     Button configButton;
+//    LinearLayout container;
 
 
     @SuppressLint("SetTextI18n")
@@ -60,11 +72,9 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        //If I delete these two it will lagg very bad
-        SharedPreferences prefs = getSharedPreferences("config", MODE_PRIVATE);
-        String currentConfig = prefs.getString("active_name", null);
-
         configButton = findViewById(R.id.load_config_button);
+//        container = findViewById(R.id.main_buttons_container);
+
 
         View title = findViewById(R.id.title);
         View belepes = findViewById(R.id.belepes);
@@ -81,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
         belepes.startAnimation(anim2);
         pdfek.startAnimation(anim3);
     }
+
 
     //********************JSON Importing**************************\\
 
@@ -178,6 +189,7 @@ public class MainActivity extends AppCompatActivity {
             SHARE_NAME = config.getString("share_name");
             CERNA_PATH = config.getString("cerna_path");
             PDF_PATH = config.getString("pdf_path");
+//            PR4_PATH = config.getString("pr4_path");
 
             SharedPreferences prefs = getSharedPreferences("config", MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit();
@@ -188,6 +200,53 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Konfiguráció betöltve: " + config.getString("name"), Toast.LENGTH_SHORT).show();
             configButton.setText(NAME);
 
+//            if (Objects.equals(PR4_PATH, "null") || PR4_PATH.isEmpty()) {
+//                MaterialButton btn = new MaterialButton(this,null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
+//                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+//                        LinearLayout.LayoutParams.WRAP_CONTENT,
+//                        LinearLayout.LayoutParams.WRAP_CONTENT
+//                );
+//                layoutParams.setMargins(0, 0, 0, 24);
+//                btn.setLayoutParams(layoutParams);
+//
+//                btn.setText("PR4");
+//                btn.setAllCaps(false);
+//                btn.setLetterSpacing(0);
+//                btn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+//                btn.setTextColor(ContextCompat.getColor(this, android.R.color.white));
+//                btn.setMinimumHeight((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 56, getResources().getDisplayMetrics()));
+//
+//                int verticalPadding = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics());
+//                btn.setPadding(btn.getPaddingLeft(), verticalPadding, btn.getPaddingRight(), verticalPadding);
+//                btn.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.primary));
+//                btn.setRippleColor(ContextCompat.getColorStateList(this, R.color.primary_dark));
+//                btn.setCornerRadius((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics()));
+//
+//                Drawable icon = ContextCompat.getDrawable(this, R.drawable.ic_login);
+//                if (icon != null) {
+//                    icon.setTint(ContextCompat.getColor(this, android.R.color.white));
+//                    btn.setIcon(icon);
+//                    btn.setIconGravity(MaterialButton.ICON_GRAVITY_TEXT_START);
+//                    btn.setIconPadding((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics()));
+//                }
+//
+//                btn.setOnClickListener(v->{
+//                    Intent intent = new Intent(MainActivity.this, PDFOpen.class);
+//                    intent.putExtra("NAME",NAME);
+//                    intent.putExtra("NAS_IP", SERVER_IP);
+//                    intent.putExtra("USERNAME", USERNAME);
+//                    intent.putExtra("PASSWORD", PASSWORD);
+//                    intent.putExtra("SHARE_NAME", SHARE_NAME);
+//                    intent.putExtra("PR4_PATH", PR4_PATH);
+//                    startActivity(intent);
+//
+//                });
+//
+//
+//                container.addView(btn);
+//
+//            }
+
         } catch (Exception e) {
             Toast.makeText(this, "Nem sikerült betölteni a konfigurációt", Toast.LENGTH_SHORT).show();
         }
@@ -196,7 +255,6 @@ public class MainActivity extends AppCompatActivity {
         configurationApplier();
     }
 
-    //****************************If theres more than one CSV in a config, we can choose*****************************\\
     private void configurationApplier() {
         if (SERVER_IP == null || USERNAME == null || PASSWORD == null || SHARE_NAME == null || CERNA_PATH == null) {
             Toast.makeText(this, "Előbb válassz konfigurációt!", Toast.LENGTH_LONG).show();
@@ -240,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
 
                 } catch (Exception e) {
                     runOnUiThread(() ->
-                            Toast.makeText(MainActivity.this, "Send help pls: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                            Toast.makeText(MainActivity.this, "Hiba a NAS elérésekor: " + e.getMessage(), Toast.LENGTH_LONG).show());
                 }
 
             } catch (Exception e) {
