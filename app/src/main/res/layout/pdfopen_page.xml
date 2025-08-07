@@ -30,7 +30,6 @@
             android:layout_marginBottom="48dp"/>
 
 
-    <!-- Buttons Section -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/searchPdf"
             android:text="PDF Keresése"
@@ -83,7 +82,6 @@
             tools:ignore="OnClick" />
 
 
-        <!-- PDF Viewer Section -->
         <com.rajat.pdfviewer.PdfRendererView
             android:id="@+id/pdfView"
             android:layout_width="0dp"

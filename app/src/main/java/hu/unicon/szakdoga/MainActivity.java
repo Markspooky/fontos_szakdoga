@@ -51,12 +51,10 @@ public class MainActivity extends AppCompatActivity {
     private String SHARE_NAME;
     private String CERNA_PATH;
     private String PDF_PATH;
-//    private String PR4_PATH;
     private String USERNAME;
     private String PASSWORD;
     private static final int REQUEST_CODE_IMPORT_JSON = 2001;
     Button configButton;
-//    LinearLayout container;
 
 
     @SuppressLint("SetTextI18n")
@@ -73,7 +71,6 @@ public class MainActivity extends AppCompatActivity {
         });
 
         configButton = findViewById(R.id.load_config_button);
-//        container = findViewById(R.id.main_buttons_container);
 
 
         View title = findViewById(R.id.title);
@@ -199,53 +196,6 @@ public class MainActivity extends AppCompatActivity {
 
             Toast.makeText(this, "Konfiguráció betöltve: " + config.getString("name"), Toast.LENGTH_SHORT).show();
             configButton.setText(NAME);
-
-//            if (Objects.equals(PR4_PATH, "null") || PR4_PATH.isEmpty()) {
-//                MaterialButton btn = new MaterialButton(this,null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-//                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
-//                        LinearLayout.LayoutParams.WRAP_CONTENT,
-//                        LinearLayout.LayoutParams.WRAP_CONTENT
-//                );
-//                layoutParams.setMargins(0, 0, 0, 24);
-//                btn.setLayoutParams(layoutParams);
-//
-//                btn.setText("PR4");
-//                btn.setAllCaps(false);
-//                btn.setLetterSpacing(0);
-//                btn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-//                btn.setTextColor(ContextCompat.getColor(this, android.R.color.white));
-//                btn.setMinimumHeight((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 56, getResources().getDisplayMetrics()));
-//
-//                int verticalPadding = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics());
-//                btn.setPadding(btn.getPaddingLeft(), verticalPadding, btn.getPaddingRight(), verticalPadding);
-//                btn.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.primary));
-//                btn.setRippleColor(ContextCompat.getColorStateList(this, R.color.primary_dark));
-//                btn.setCornerRadius((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics()));
-//
-//                Drawable icon = ContextCompat.getDrawable(this, R.drawable.ic_login);
-//                if (icon != null) {
-//                    icon.setTint(ContextCompat.getColor(this, android.R.color.white));
-//                    btn.setIcon(icon);
-//                    btn.setIconGravity(MaterialButton.ICON_GRAVITY_TEXT_START);
-//                    btn.setIconPadding((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics()));
-//                }
-//
-//                btn.setOnClickListener(v->{
-//                    Intent intent = new Intent(MainActivity.this, PDFOpen.class);
-//                    intent.putExtra("NAME",NAME);
-//                    intent.putExtra("NAS_IP", SERVER_IP);
-//                    intent.putExtra("USERNAME", USERNAME);
-//                    intent.putExtra("PASSWORD", PASSWORD);
-//                    intent.putExtra("SHARE_NAME", SHARE_NAME);
-//                    intent.putExtra("PR4_PATH", PR4_PATH);
-//                    startActivity(intent);
-//
-//                });
-//
-//
-//                container.addView(btn);
-//
-//            }
 
         } catch (Exception e) {
             Toast.makeText(this, "Nem sikerült betölteni a konfigurációt", Toast.LENGTH_SHORT).show();

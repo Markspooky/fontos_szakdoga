@@ -13,6 +13,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -104,13 +106,33 @@ public class SearchPDF extends AppCompatActivity {
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @SuppressLint("SetTextI18n")
             @Override public void afterTextChanged(Editable s) {
                 String rawQuery = s.toString();
                 String query = rawQuery.trim();
                 if (query.isEmpty() && rawQuery.isEmpty()) {
                     fetchItemsFromNas(currentPath);
                 } else if (query.length() >= 3) {
+                    resultContainer.removeAllViews();
+                    TextView emptyMsg = new TextView(SearchPDF.this);
+                    emptyMsg.setPadding(30, 30, 30, 30);
+                    emptyMsg.setTextSize(20);
+                    emptyMsg.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                    emptyMsg.setTextColor(Color.BLACK);
+                    emptyMsg.setElevation(1);
+                    emptyMsg.setText("Töltés...");
+                    resultContainer.addView(emptyMsg);
                     searchRecursivelyOnNas(PDF_PATH, query);
+                } else {
+                    resultContainer.removeAllViews();
+                    TextView emptyMsg = new TextView(SearchPDF.this);
+                    emptyMsg.setPadding(30, 30, 30, 30);
+                    emptyMsg.setTextSize(20);
+                    emptyMsg.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                    emptyMsg.setTextColor(Color.BLACK);
+                    emptyMsg.setElevation(1);
+                    emptyMsg.setText("Legalább 3 karakterrel keress!");
+                    resultContainer.addView(emptyMsg);
                 }
             }
         });
@@ -186,6 +208,7 @@ public class SearchPDF extends AppCompatActivity {
                         }
                     }
 
+
                     runOnUiThread(() -> {
                         allPdf.clear();
                         allPdf.addAll(tempList);
@@ -197,7 +220,8 @@ public class SearchPDF extends AppCompatActivity {
             } catch (Exception e) {
                 Log.e("SMB", "Hiba a NAS elérésekor", e);
                 runOnUiThread(() ->
-                        Toast.makeText(this, "Hiba a NAS elérésekor", Toast.LENGTH_SHORT).show());
+                        Toast.makeText(this, "Hiba a NAS elérésekor", Toast.LENGTH_SHORT).show()
+                );
             }
         }).start();
     }
@@ -272,7 +296,6 @@ public class SearchPDF extends AppCompatActivity {
     //**************************************************Dynamic search through Folders**************************************************\\
     @SuppressLint("SetTextI18n")
     private void updateResultsWithFolders(List<String> folders, List<PDF> pdfs) {
-
         resultContainer.removeAllViews();
 
         String lastPath = currentPath;
@@ -298,6 +321,18 @@ public class SearchPDF extends AppCompatActivity {
 
             styleButton(backBtn);
             resultContainer.addView(backBtn);
+        }
+
+        if (folders.isEmpty() && pdfs.isEmpty()) {
+            TextView emptyMsg = new TextView(this);
+            emptyMsg.setPadding(30, 30, 30, 30);
+            emptyMsg.setTextSize(20);
+            emptyMsg.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+            emptyMsg.setTextColor(Color.BLACK);
+            emptyMsg.setElevation(1);
+            emptyMsg.setText("Hoppá!\nÚgy tűnik üres a mappa");
+            resultContainer.addView(emptyMsg);
+            return;
         }
 
         for (String folderName : folders) {
@@ -328,34 +363,46 @@ public class SearchPDF extends AppCompatActivity {
             resultContainer.addView(btn);
         }
     }
+
     //**************************************************Dynamic search inside a Folder**************************************************\\
     @SuppressLint("SetTextI18n")
     private void updateResults(String query) {
         resultContainer.removeAllViews();
+
         if (query.length() >= 3) {
+            int addedCount = 0;
             for (PDF pdf : allPdf) {
                 if (pdf.name.toLowerCase().contains(query.toLowerCase())) {
                     Button btn = new Button(this);
-                    btn.setText("📄 " + pdf.name.substring(pdf.name.lastIndexOf('/') + 1) + "\n📁 " + pdf.name.substring(0, pdf.name.lastIndexOf('/')));
+                    btn.setText("📄 " + pdf.name.substring(pdf.name.lastIndexOf('/') + 1)
+                            + "\n📁 " + pdf.name.substring(0, pdf.name.lastIndexOf('/')));
                     btn.setOnClickListener(v -> {
                         v.setEnabled(false);
                         openPdfFromNas(pdf.name);
                         loader.setVisibility(View.VISIBLE);
-
                         v.postDelayed(() -> v.setEnabled(true), 2000);
                     });
                     styleButton(btn);
                     resultContainer.addView(btn);
-                }
-                if (resultContainer.getChildCount() > 100) {
-                    break;
+                    addedCount++;
+
+                    if (addedCount >= 100) break;
                 }
             }
-        }
-        if (query.length() < 3) {
-            return;
+
+            if (addedCount == 0) {
+                TextView emptyMsg = new TextView(this);
+                emptyMsg.setPadding(30, 30, 30, 30);
+                emptyMsg.setTextSize(20);
+                emptyMsg.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                emptyMsg.setTextColor(Color.BLACK);
+                emptyMsg.setElevation(1);
+                emptyMsg.setText("Hoppá!\nNincs a keresésnek megfelelő találat");
+                resultContainer.addView(emptyMsg);
+            }
         }
     }
+
 
     //**************************************************Custom button for every PDF and BackButton**************************************************\\
     private void styleButton(Button btn) {
