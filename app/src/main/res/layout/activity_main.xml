@@ -1,116 +1,116 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background"
-    android:padding="32dp"
-    tools:context=".MainActivity">
+    tools:context=".MainActivity"
+    android:background="@drawable/background">
 
-    <!-- Menü gomb -->
-    <ImageView
-        android:id="@+id/menubutton"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:onClick="menuPoint"
-        android:src="@drawable/menu_hamburger_svgrepo_com"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="32dp">
 
-    <Button
-        android:id="@+id/load_config_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:onClick="selectConfigFromJsonFile"
-        android:text="Konfiguráció kiválasztása"
-        app:layout_constraintStart_toEndOf="@id/menubutton"
-        app:layout_constraintTop_toTopOf="@id/menubutton"
-        android:textColor="@android:color/white"
-        android:textSize="18sp"
-        android:textAllCaps="false"
-        android:letterSpacing="0"
-        app:cornerRadius="16dp"
-        app:backgroundTint="@color/primary"
-        app:rippleColor="@color/primary_dark"
-        app:iconGravity="textStart"
-        app:iconTint="@android:color/white"/>
+        <ImageView
+            android:id="@+id/menubutton"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:onClick="menuPoint"
+            android:src="@drawable/hamburgerwhite"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-
-    <LinearLayout
-        android:id="@+id/main_buttons_container"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="60dp"
-        android:gravity="center_horizontal"
-        android:orientation="vertical"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <!-- Üdvözlő szöveg -->
-        <TextView
-            android:id="@+id/title"
+        <Button
+            android:id="@+id/load_config_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="48dp"
-            android:text="Üdvözlünk!"
-            android:textColor="@color/black"
-            android:textSize="36sp"
-            android:textStyle="bold" />
-
-        <!-- Gombok -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/belepes"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:letterSpacing="0"
-            android:minHeight="56dp"
-            android:onClick="loggingIn"
-            android:paddingVertical="12dp"
-            android:text="Cérna keresése"
-            android:textAllCaps="false"
+            android:layout_marginStart="16dp"
+            android:onClick="selectConfigFromJsonFile"
+            android:text="Konfiguráció kiválasztása"
+            app:layout_constraintStart_toEndOf="@id/menubutton"
+            app:layout_constraintTop_toTopOf="@id/menubutton"
             android:textColor="@android:color/white"
             android:textSize="18sp"
-            app:backgroundTint="@color/primary"
-            app:cornerRadius="16dp"
-            app:icon="@drawable/ic_login"
-            app:iconGravity="textStart"
-            app:iconPadding="16dp"
-            app:iconTint="@android:color/white"
-            app:rippleColor="@color/primary_dark" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/pdfek"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:letterSpacing="0"
-            android:minHeight="56dp"
-            android:onClick="pdfOpen"
-            android:paddingVertical="12dp"
-            android:text="PDF-ek megtekintése"
             android:textAllCaps="false"
-            android:textColor="@android:color/white"
-            android:textSize="18sp"
-            app:backgroundTint="@color/primary"
+            android:letterSpacing="0"
             app:cornerRadius="16dp"
-            app:icon="@drawable/ic_login"
+            app:backgroundTint="@color/primary"
+            app:rippleColor="@color/primary_dark"
             app:iconGravity="textStart"
-            app:iconPadding="16dp"
-            app:iconTint="@android:color/white"
-            app:rippleColor="@color/primary_dark" />
+            app:iconTint="@android:color/white" />
 
+        <LinearLayout
+            android:id="@+id/main_buttons_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="60dp"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
-    </LinearLayout>
+            <TextView
+                android:id="@+id/title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="48dp"
+                android:text="Üdvözlünk!"
+                android:textColor="@color/white"
+                android:textSize="36sp"
+                android:textStyle="bold" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/belepes"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:letterSpacing="0"
+                android:minHeight="56dp"
+                android:onClick="loggingIn"
+                android:paddingVertical="12dp"
+                android:text="Cérna keresése"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                app:backgroundTint="@color/primary"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/ic_login"
+                app:iconGravity="textStart"
+                app:iconPadding="16dp"
+                app:iconTint="@android:color/white"
+                app:rippleColor="@color/primary_dark" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/pdfek"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:letterSpacing="0"
+                android:minHeight="56dp"
+                android:onClick="pdfOpen"
+                android:paddingVertical="12dp"
+                android:text="PDF-ek megtekintése"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                app:backgroundTint="@color/primary"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/ic_login"
+                app:iconGravity="textStart"
+                app:iconPadding="16dp"
+                app:iconTint="@android:color/white"
+                app:rippleColor="@color/primary_dark" />
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</FrameLayout>

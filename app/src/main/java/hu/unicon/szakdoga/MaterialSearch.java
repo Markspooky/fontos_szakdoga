@@ -1,6 +1,7 @@
 package hu.unicon.szakdoga;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.Editable;
@@ -196,6 +197,8 @@ public class MaterialSearch extends AppCompatActivity {
         for(Cerna cerna : res) {
             if (cerna.prettyDetails.toUpperCase().contains(query.toUpperCase())) {
                 TextView btn = new TextView(this);
+                Context context = getApplicationContext();
+                btn.setTextColor(context.getResources().getColor(R.color.white));
                 btn.setText(cerna.prettyDetails);
                 btn.setPadding(30,30,30,30);
                 LinearLayout.LayoutParams vau = new LinearLayout.LayoutParams(
@@ -205,7 +208,6 @@ public class MaterialSearch extends AppCompatActivity {
                 btn.setTextSize(25);
                 btn.setBackgroundResource(R.drawable.rounded_edittext);
                 btn.setTextAlignment(ViewGroup.TEXT_ALIGNMENT_VIEW_START);
-                btn.setTextColor(Color.BLACK);
                 btn.setElevation(1);
                 vau.setMargins(0,0,0,30);
                 btn.setLayoutParams(vau);

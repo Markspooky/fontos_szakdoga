@@ -2,6 +2,7 @@ package hu.unicon.szakdoga;
 
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.Editable;
@@ -118,7 +119,8 @@ public class SearchPDF extends AppCompatActivity {
                     emptyMsg.setPadding(30, 30, 30, 30);
                     emptyMsg.setTextSize(20);
                     emptyMsg.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-                    emptyMsg.setTextColor(Color.BLACK);
+                    Context context = getApplicationContext();
+                    emptyMsg.setTextColor(context.getResources().getColor(R.color.white));
                     emptyMsg.setElevation(1);
                     emptyMsg.setText("Töltés...");
                     resultContainer.addView(emptyMsg);
@@ -129,7 +131,8 @@ public class SearchPDF extends AppCompatActivity {
                     emptyMsg.setPadding(30, 30, 30, 30);
                     emptyMsg.setTextSize(20);
                     emptyMsg.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-                    emptyMsg.setTextColor(Color.BLACK);
+                    Context context = getApplicationContext();
+                    emptyMsg.setTextColor(context.getResources().getColor(R.color.white));
                     emptyMsg.setElevation(1);
                     emptyMsg.setText("Legalább 3 karakterrel keress!");
                     resultContainer.addView(emptyMsg);
@@ -328,7 +331,8 @@ public class SearchPDF extends AppCompatActivity {
             emptyMsg.setPadding(30, 30, 30, 30);
             emptyMsg.setTextSize(20);
             emptyMsg.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-            emptyMsg.setTextColor(Color.BLACK);
+            Context context = getApplicationContext();
+            emptyMsg.setTextColor(context.getResources().getColor(R.color.white));
             emptyMsg.setElevation(1);
             emptyMsg.setText("Hoppá!\nÚgy tűnik üres a mappa");
             resultContainer.addView(emptyMsg);
@@ -395,7 +399,8 @@ public class SearchPDF extends AppCompatActivity {
                 emptyMsg.setPadding(30, 30, 30, 30);
                 emptyMsg.setTextSize(20);
                 emptyMsg.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-                emptyMsg.setTextColor(Color.BLACK);
+                Context context = getApplicationContext();
+                emptyMsg.setTextColor(context.getResources().getColor(R.color.white));
                 emptyMsg.setElevation(1);
                 emptyMsg.setText("Hoppá!\nNincs a keresésnek megfelelő találat");
                 resultContainer.addView(emptyMsg);
@@ -416,7 +421,8 @@ public class SearchPDF extends AppCompatActivity {
         btn.setTextSize(20);
         btn.setBackgroundResource(R.drawable.rounded_edittext);
         btn.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
-        btn.setTextColor(Color.BLACK);
+        Context context = getApplicationContext();
+        btn.setTextColor(context.getResources().getColor(R.color.white));
         btn.setElevation(1);
     }
 

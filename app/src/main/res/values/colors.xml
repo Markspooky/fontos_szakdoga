@@ -15,9 +15,6 @@
     <color name="colorPrimaryDark">#006d2d</color>
     <color name="colorAccent">#55cf86</color>
 
-
-    <!-- Dark mode: -->
-
     <color name="textColor">@color/black</color>
     <color name="backgroundColor">@color/white</color>
 
