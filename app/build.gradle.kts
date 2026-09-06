@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
 }
 
 android {
@@ -37,29 +38,31 @@ android {
     buildFeatures {
         viewBinding = true
     }
+}
 
+// Modern Kotlin 2.0+ compiler configuration
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+    }
 }
 
 dependencies {
-
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
     implementation(libs.okhttp)
-
 
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
+    implementation(libs.core.ktx)
+    
+    implementation(libs.pdf.viewer)
+
+    implementation("com.hierynomus:smbj:0.14.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
-
-
-    implementation("io.github.afreakyelf:Pdf-Viewer:2.3.7")
-
-    implementation ("com.hierynomus:smbj:0.14.0")
-
-
-
 }

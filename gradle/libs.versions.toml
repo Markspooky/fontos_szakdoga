@@ -1,14 +1,17 @@
 [versions]
-agp = "8.9.1"
+agp = "8.7.3"
 junit = "4.13.2"
-junitVersion = "1.2.1"
-espressoCore = "3.6.1"
-appcompat = "1.7.0"
-material = "1.12.0"
-activity = "1.10.1"
+junitVersion = "1.3.0"
+espressoCore = "3.7.0"
+appcompat = "1.7.1"
+material = "1.14.0"
+activity = "1.10.0"
 constraintlayout = "2.2.1"
 okhttp = "4.12.0"
-retrofit = "2.9.0"
+retrofit = "3.0.0"
+kotlin = "2.4.10"
+coreKtx = "1.15.0"
+alaminPdf = "v1.0.17"
 
 [libraries]
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "retrofit" }
@@ -21,7 +24,9 @@ activity = { group = "androidx.activity", name = "activity", version.ref = "acti
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
+core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+pdf-viewer = { group = "com.github.alamin5g", name = "Alamin5G-PDF-Viewer", version.ref = "alaminPdf" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

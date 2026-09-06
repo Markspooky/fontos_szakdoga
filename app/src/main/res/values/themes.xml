@@ -1,22 +1,12 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.Szakdoga" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="pdfView_backgroundColor">@color/white</item>
-        <item name="pdfView_toolbarColor">@color/background</item>
-        <item name="pdfView_disableScreenshots">true</item>
         <item name="android:navigationBarColor">@android:color/white</item>
         <item name="android:windowLightNavigationBar">true</item>
 
 
     </style>
 
-
-    <style name="Theme.PdfView.SelectedTheme.">
-        <item name="pdfView_backgroundColor">@drawable/background</item>
-        <item name="pdfView_toolbarColor">@drawable/background</item>
-        <item name="pdfView_disableScreenshots">true</item>
-
-    </style>
 
 
 
