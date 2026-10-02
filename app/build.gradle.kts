@@ -19,8 +19,8 @@ android {
         applicationId = "hu.unicon.szakdoga"
         minSdk = 27
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
