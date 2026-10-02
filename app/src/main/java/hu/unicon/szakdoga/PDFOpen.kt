@@ -11,8 +11,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.github.barteksc.pdfviewer.scroll.DefaultScrollHandle
-import com.github.barteksc.pdfviewer.util.FitPolicy
+import com.alamin5g.pdf.scroll.DefaultScrollHandle
+import com.alamin5g.pdf.PDFView.FitPolicy
 import hu.unicon.szakdoga.databinding.PdfopenPageBinding
 
 class PDFOpen : AppCompatActivity() {

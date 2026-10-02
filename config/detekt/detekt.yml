@@ -1,0 +1,27 @@
+build:
+  maxIssues: 50
+  weights:
+    complexity: 2
+    formatting: 1
+
+style:
+  MagicNumber:
+    active: false
+  WildcardImport:
+    active: false
+  MaxLineLength:
+    maxLineLength: 160
+
+naming:
+  MatchingDeclarationName:
+    active: false
+  FunctionNaming:
+    active: false
+  VariableNaming:
+    active: false
+
+complexity:
+  TooManyFunctions:
+    active: false
+  LongMethod:
+    threshold: 100

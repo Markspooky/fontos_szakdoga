@@ -30,3 +30,4 @@ pdf-viewer = { group = "com.github.alamin5g", name = "Alamin5G-PDF-Viewer", vers
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version = "1.23.7" }

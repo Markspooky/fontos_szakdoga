@@ -6,7 +6,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background">
+    android:background="@drawable/background">
 
     <LinearLayout
         android:id="@+id/topBar"
@@ -21,10 +21,10 @@
             android:id="@+id/title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="PDF Menüpont!"
+            android:text="PDF Megjelenítő"
             android:textSize="24sp"
             android:textStyle="bold"
-            android:textColor="@color/black"
+            android:textColor="@color/white"
             android:layout_marginBottom="16dp"/>
 
         <LinearLayout

@@ -19,35 +19,26 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.hierynomus.msdtyp.AccessMask
-import com.hierynomus.msfscc.FileAttributes
-import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation
-import com.hierynomus.mssmb2.SMB2CreateDisposition
-import com.hierynomus.mssmb2.SMB2ShareAccess
-import com.hierynomus.smbj.SMBClient
-import com.hierynomus.smbj.auth.AuthenticationContext
-import com.hierynomus.smbj.share.DiskShare
+import hu.unicon.szakdoga.api.ApiClient
+import hu.unicon.szakdoga.model.Document
+import hu.unicon.szakdoga.model.Folder
+import okhttp3.ResponseBody
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.io.File
 import java.io.FileOutputStream
-import java.util.EnumSet
-import java.util.Locale
 
 class SearchPDF : AppCompatActivity() {
     private var searchEditText: EditText? = null
     private var resultContainer: LinearLayout? = null
-    private var currentPath: String = ""
     private var loader: ProgressBar? = null
 
-    private var NAME: String? = null
-    private var SERVER_IP: String? = null
-    private var SHARE_NAME: String? = null
-    private var PDF_PATH: String? = null
-    private var USERNAME: String? = null
-    private var PASSWORD: String? = null
+    private var currentFolderId: Long? = null
+    private val folderStack = mutableListOf<Pair<Long?, String>>()
 
-    internal data class PDF(val name: String, val fileID: FileIdBothDirectoryInformation?)
-
-    private val allPdf = mutableListOf<PDF>()
+    private val currentFolders = mutableListOf<Folder>()
+    private val currentDocuments = mutableListOf<Document>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,25 +50,10 @@ class SearchPDF : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-        
+
         loader = findViewById(R.id.loader)
         searchEditText = findViewById(R.id.searchEditText)
         resultContainer = findViewById(R.id.resultContainer)
-
-        NAME = intent.getStringExtra("NAME")
-        SERVER_IP = intent.getStringExtra("NAS_IP")
-        USERNAME = intent.getStringExtra("USERNAME")
-        PASSWORD = intent.getStringExtra("PASSWORD")
-        SHARE_NAME = intent.getStringExtra("SHARE_NAME")
-        PDF_PATH = intent.getStringExtra("PDF_PATH")
-
-        if (NAME == null || SERVER_IP == null || USERNAME == null || PASSWORD == null || SHARE_NAME == null || PDF_PATH == null) {
-            Toast.makeText(this, "Hiányos konfiguráció", Toast.LENGTH_SHORT).show()
-            finish()
-            return
-        }
-
-        currentPath = savedInstanceState?.getString("currentPath") ?: PDF_PATH!!
 
         searchEditText?.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -86,17 +62,202 @@ class SearchPDF : AppCompatActivity() {
             override fun afterTextChanged(s: Editable) {
                 val query = s.toString().trim()
                 if (query.isEmpty()) {
-                    fetchItemsFromNas(currentPath)
-                } else if (query.length >= 3) {
-                    showLoadingMessage("Töltés...")
-                    searchRecursivelyOnNas(PDF_PATH!!, query)
-                } else {
-                    showLoadingMessage("Legalább 3 karakterrel keress!")
+                    loadCurrentFolderContent()
+                } else if (query.length >= 2) {
+                    searchDocumentsInApi(query)
                 }
             }
         })
 
-        fetchItemsFromNas(currentPath)
+        loadCurrentFolderContent()
+    }
+
+    private fun loadCurrentFolderContent() {
+        loader?.visibility = View.VISIBLE
+        val apiService = ApiClient.getService(this)
+
+        apiService.getFolders(currentFolderId).enqueue(object : Callback<List<Folder>> {
+            override fun onResponse(call: Call<List<Folder>>, response: Response<List<Folder>>) {
+                if (response.isSuccessful) {
+                    currentFolders.clear()
+                    response.body()?.let { currentFolders.addAll(it) }
+                    loadDocumentsInCurrentFolder()
+                } else {
+                    loader?.visibility = View.GONE
+                    Toast.makeText(this@SearchPDF, "Hiba a mappák betöltésekor", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onFailure(call: Call<List<Folder>>, t: Throwable) {
+                loader?.visibility = View.GONE
+                Log.e("SearchPDF", "Hiba a mappák lekérésekor", t)
+                Toast.makeText(this@SearchPDF, "Hálózati hiba: ${t.localizedMessage}", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    private fun loadDocumentsInCurrentFolder() {
+        val apiService = ApiClient.getService(this)
+
+        apiService.getDocuments(currentFolderId).enqueue(object : Callback<List<Document>> {
+            override fun onResponse(call: Call<List<Document>>, response: Response<List<Document>>) {
+                loader?.visibility = View.GONE
+                if (response.isSuccessful) {
+                    currentDocuments.clear()
+                    response.body()?.let { currentDocuments.addAll(it) }
+                    displayCurrentDirectory()
+                } else {
+                    Toast.makeText(this@SearchPDF, "Hiba a dokumentumok betöltésekor", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onFailure(call: Call<List<Document>>, t: Throwable) {
+                loader?.visibility = View.GONE
+                Log.e("SearchPDF", "Hiba a dokumentumok lekérésekor", t)
+                Toast.makeText(this@SearchPDF, "Hálózati hiba", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    private fun searchDocumentsInApi(query: String) {
+        loader?.visibility = View.VISIBLE
+        val apiService = ApiClient.getService(this)
+
+        apiService.searchDocuments(query).enqueue(object : Callback<List<Document>> {
+            override fun onResponse(call: Call<List<Document>>, response: Response<List<Document>>) {
+                loader?.visibility = View.GONE
+                if (response.isSuccessful) {
+                    val searchResults = response.body() ?: emptyList()
+                    displaySearchResults(searchResults)
+                } else {
+                    Toast.makeText(this@SearchPDF, "Hiba a keresés során", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onFailure(call: Call<List<Document>>, t: Throwable) {
+                loader?.visibility = View.GONE
+                Log.e("SearchPDF", "Hiba a kereséskor", t)
+                Toast.makeText(this@SearchPDF, "Hálózati hiba", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    private fun downloadPdfAndOpen(doc: Document) {
+        loader?.visibility = View.VISIBLE
+        val apiService = ApiClient.getService(this)
+
+        apiService.downloadDocument(doc.id).enqueue(object : Callback<ResponseBody> {
+            override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+                if (response.isSuccessful && response.body() != null) {
+                    Thread {
+                        try {
+                            val tempFile = File(cacheDir, doc.fileName)
+                            response.body()!!.byteStream().use { inputStream ->
+                                FileOutputStream(tempFile).use { outputStream ->
+                                    inputStream.copyTo(outputStream)
+                                }
+                            }
+                            runOnUiThread {
+                                loader?.visibility = View.GONE
+                                launchPdfViewer(tempFile.absolutePath, doc.title, doc.id)
+                            }
+                        } catch (e: Exception) {
+                            Log.e("SearchPDF", "Fájl mentési hiba", e)
+                            runOnUiThread {
+                                loader?.visibility = View.GONE
+                                Toast.makeText(this@SearchPDF, "Hiba a fájl mentésekor", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }.start()
+                } else {
+                    loader?.visibility = View.GONE
+                    Toast.makeText(this@SearchPDF, "Hiba a PDF letöltésekor", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                loader?.visibility = View.GONE
+                Log.e("SearchPDF", "Hiba a letöltéskor", t)
+                Toast.makeText(this@SearchPDF, "Hálózati hiba letöltéskor", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    private fun launchPdfViewer(path: String, title: String, id: Long) {
+        val fileUri = Uri.fromFile(File(path)).toString()
+        val intent = Intent(this, PDFOpen::class.java).apply {
+            putExtra("PDF_URI", fileUri)
+            putExtra("PDF_TITLE", title)
+            putExtra("PDF_ID", id)
+        }
+        startActivity(intent)
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun displayCurrentDirectory() {
+        resultContainer?.removeAllViews()
+
+        if (folderStack.isNotEmpty()) {
+            val backBtn = Button(this).apply {
+                text = "<-- Vissza"
+                setOnClickListener {
+                    folderStack.removeAt(folderStack.size - 1)
+                    currentFolderId = folderStack.lastOrNull()?.first
+                    loadCurrentFolderContent()
+                }
+            }
+            styleButton(backBtn)
+            resultContainer?.addView(backBtn)
+        }
+
+        if (currentFolders.isEmpty() && currentDocuments.isEmpty()) {
+            showLoadingMessage("Üres mappa")
+            return
+        }
+
+        for (folder in currentFolders) {
+            val btn = Button(this).apply {
+                text = "📁 ${folder.name}"
+                setOnClickListener {
+                    folderStack.add(Pair(folder.id, folder.name))
+                    currentFolderId = folder.id
+                    loadCurrentFolderContent()
+                }
+            }
+            styleButton(btn)
+            resultContainer?.addView(btn)
+        }
+
+        for (doc in currentDocuments) {
+            val btn = Button(this).apply {
+                text = "📄 ${doc.title}"
+                setOnClickListener {
+                    downloadPdfAndOpen(doc)
+                }
+            }
+            styleButton(btn)
+            resultContainer?.addView(btn)
+        }
+    }
+
+    private fun displaySearchResults(docs: List<Document>) {
+        resultContainer?.removeAllViews()
+
+        if (docs.isEmpty()) {
+            showLoadingMessage("Nincs a keresésnek megfelelő PDF")
+            return
+        }
+
+        for (doc in docs) {
+            val btn = Button(this).apply {
+                text = "📄 ${doc.title}\n(${doc.fileName})"
+                setOnClickListener {
+                    downloadPdfAndOpen(doc)
+                }
+            }
+            styleButton(btn)
+            resultContainer?.addView(btn)
+        }
     }
 
     private fun showLoadingMessage(message: String) {
@@ -109,229 +270,6 @@ class SearchPDF : AppCompatActivity() {
             text = message
         }
         resultContainer?.addView(msg)
-    }
-
-    private fun searchRecursivelyOnNas(startPath: String, query: String) {
-        Thread {
-            val client = SMBClient()
-            try {
-                client.connect(SERVER_IP).use { connection ->
-                    val session = connection.authenticate(
-                        AuthenticationContext(USERNAME, PASSWORD?.toCharArray(), "")
-                    )
-                    (session.connectShare(SHARE_NAME) as DiskShare).use { share ->
-                        val matchedPdfs = mutableListOf<PDF>()
-                        recursiveSearch(share, startPath, query, matchedPdfs)
-                        runOnUiThread {
-                            allPdf.clear()
-                            allPdf.addAll(matchedPdfs)
-                            updateResults(query)
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("SMB_SEARCH", "Rekurzív keresés hiba", e)
-                runOnUiThread {
-                    Toast.makeText(this, "Hiba a rekurzív keresés során", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }.start()
-    }
-
-    private fun recursiveSearch(share: DiskShare, path: String, query: String, resultList: MutableList<PDF>) {
-        val items = try { share.list(path) } catch (e: Exception) { emptyList() }
-        for (item in items) {
-            val name = item.fileName
-            if (name == "." || name == "..") continue
-
-            val fullPath = if (path.endsWith("/")) path + name else "$path/$name"
-
-            if ((item.fileAttributes and FileAttributes.FILE_ATTRIBUTE_DIRECTORY.value) != 0L) {
-                recursiveSearch(share, fullPath, query, resultList)
-            } else if (name.lowercase().endsWith(".pdf") && name.lowercase().contains(query.lowercase())) {
-                resultList.add(PDF(fullPath, item))
-            }
-        }
-    }
-
-    private fun fetchItemsFromNas(folderPath: String) {
-        Thread {
-            val client = SMBClient()
-            try {
-                client.connect(SERVER_IP).use { connection ->
-                    val session = connection.authenticate(
-                        AuthenticationContext(USERNAME, PASSWORD?.toCharArray(), "")
-                    )
-                    (session.connectShare(SHARE_NAME) as DiskShare).use { share ->
-                        val tempList = mutableListOf<PDF>()
-                        val folderList = mutableListOf<String>()
-
-                        for (item in share.list(folderPath)) {
-                            val name = item.fileName
-                            if (name == "." || name == "..") continue
-
-                            if ((item.fileAttributes and FileAttributes.FILE_ATTRIBUTE_DIRECTORY.value) != 0L) {
-                                folderList.add(name)
-                            } else if (name.lowercase().endsWith(".pdf")) {
-                                tempList.add(PDF(name, item))
-                            }
-                        }
-                        runOnUiThread {
-                            allPdf.clear()
-                            allPdf.addAll(tempList)
-                            currentPath = folderPath
-                            updateResultsWithFolders(folderList, tempList)
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("SMB", "Hiba a NAS elérésekor", e)
-                runOnUiThread {
-                    Toast.makeText(this, "Hiba a NAS elérésekor", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }.start()
-    }
-
-    private fun openPdfFromNas(fullFilePath: String) {
-        Thread {
-            try {
-                val fileName = fullFilePath.substring(fullFilePath.lastIndexOf('/') + 1)
-                val tempFile = File(cacheDir, fileName)
-
-                val client = SMBClient()
-                client.connect(SERVER_IP).use { connection ->
-                    val session = connection.authenticate(
-                        AuthenticationContext(USERNAME, PASSWORD?.toCharArray(), "")
-                    )
-                    (session.connectShare(SHARE_NAME) as DiskShare).use { share ->
-                        share.openFile(
-                            fullFilePath,
-                            EnumSet.of(AccessMask.GENERIC_READ),
-                            null,
-                            SMB2ShareAccess.ALL,
-                            SMB2CreateDisposition.FILE_OPEN,
-                            null
-                        ).use { smbFile ->
-                            smbFile.inputStream.use { inputStream ->
-                                FileOutputStream(tempFile).use { outputStream ->
-                                    inputStream.copyTo(outputStream)
-                                }
-                            }
-                        }
-                    }
-                }
-                runOnUiThread {
-                    loader?.visibility = View.GONE
-                    launchPdf(tempFile.absolutePath, fileName)
-                }
-            } catch (e: Exception) {
-                Log.e("PDF_OPEN", "Hiba a PDF megnyitásakor", e)
-                runOnUiThread {
-                    loader?.visibility = View.GONE
-                    Toast.makeText(this, "Hiba a PDF megnyitásakor", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }.start()
-    }
-
-    private fun launchPdf(path: String, fileName: String) {
-        Toast.makeText(this, "PDF megnyitása: $fileName", Toast.LENGTH_SHORT).show()
-
-        val fileUri = Uri.fromFile(File(path)).toString();
-
-        val intent = Intent(this, PDFOpen::class.java).apply {
-            putExtra("PDF_URI", fileUri);
-        }
-        startActivity(intent)
-
-    }
-
-    @SuppressLint("SetTextI18n")
-    private fun updateResultsWithFolders(folders: List<String>, pdfs: List<PDF>) {
-        resultContainer?.removeAllViews()
-
-        if (normalizePath(currentPath) != normalizePath(PDF_PATH!!)) {
-            val backBtn = Button(this).apply {
-                text = "<-- Vissza"
-                setOnClickListener {
-                    val parentPath = if (currentPath.startsWith(PDF_PATH!!) && currentPath.length > PDF_PATH!!.length) {
-                        val p = currentPath.substring(0, currentPath.lastIndexOf('/'))
-                        if (p.endsWith("/")) p.substring(0, p.length - 1) else p
-                    } else {
-                        PDF_PATH!!
-                    }
-                    fetchItemsFromNas(parentPath)
-                }
-            }
-            styleButton(backBtn)
-            resultContainer?.addView(backBtn)
-        }
-
-        if (folders.isEmpty() && pdfs.isEmpty()) {
-            showLoadingMessage("Hoppá!\nÚgy tűnik üres a mappa")
-            return
-        }
-
-        for (folderName in folders) {
-            val btn = Button(this).apply {
-                text = "📁 $folderName"
-                setOnClickListener {
-                    val newPath = if (currentPath.endsWith("/")) currentPath + folderName else "$currentPath/$folderName"
-                    fetchItemsFromNas(newPath)
-                }
-            }
-            styleButton(btn)
-            resultContainer?.addView(btn)
-        }
-
-        for (pdf in pdfs) {
-            val btn = Button(this).apply {
-                text = "📄 ${pdf.name}"
-                setOnClickListener {
-                    it.isEnabled = false
-                    loader?.visibility = View.VISIBLE
-                    val path = if (currentPath.endsWith("/")) currentPath + pdf.name else "$currentPath/${pdf.name}"
-                    openPdfFromNas(path)
-                    it.postDelayed({ it.isEnabled = true }, 2000)
-                }
-            }
-            styleButton(btn)
-            resultContainer?.addView(btn)
-        }
-    }
-
-    @SuppressLint("SetTextI18n")
-    private fun updateResults(query: String) {
-        resultContainer?.removeAllViews()
-
-        if (query.length >= 3) {
-            var addedCount = 0
-            val lowerQuery = query.lowercase()
-            for (pdf in allPdf) {
-                if (pdf.name.lowercase().contains(lowerQuery)) {
-                    val btn = Button(this).apply {
-                        val fileName = pdf.name.substring(pdf.name.lastIndexOf('/') + 1)
-                        val folderPath = pdf.name.substring(0, pdf.name.lastIndexOf('/'))
-                        text = "📄 $fileName\n📁 $folderPath"
-                        setOnClickListener {
-                            it.isEnabled = false
-                            loader?.visibility = View.VISIBLE
-                            openPdfFromNas(pdf.name)
-                            it.postDelayed({ it.isEnabled = true }, 2000)
-                        }
-                    }
-                    styleButton(btn)
-                    resultContainer?.addView(btn)
-                    addedCount++
-                    if (addedCount >= 100) break
-                }
-            }
-
-            if (addedCount == 0) {
-                showLoadingMessage("Hoppá!\nNincs a keresésnek megfelelő találat")
-            }
-        }
     }
 
     private fun styleButton(btn: Button) {
@@ -347,14 +285,5 @@ class SearchPDF : AppCompatActivity() {
         btn.textAlignment = View.TEXT_ALIGNMENT_VIEW_START
         btn.setTextColor(resources.getColor(R.color.white, null))
         btn.elevation = 1f
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putString("currentPath", currentPath)
-    }
-
-    private fun normalizePath(path: String): String {
-        return path.removeSuffix("/")
     }
 }
