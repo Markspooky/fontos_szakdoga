@@ -10,13 +10,15 @@ import android.view.View
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import com.google.android.material.snackbar.Snackbar
 import hu.unicon.szakdoga.adapter.ExplorerAdapter
 import hu.unicon.szakdoga.adapter.ExplorerItem
 import hu.unicon.szakdoga.api.ApiClient
@@ -34,6 +36,7 @@ class SearchPDF : AppCompatActivity() {
     private var recyclerView: RecyclerView? = null
     private var loader: ProgressBar? = null
     private var emptyStateTextView: TextView? = null
+    private var breadcrumbChipGroup: ChipGroup? = null
 
     private var currentFolderId: Long? = null
     private val folderStack = mutableListOf<Pair<Long?, String>>()
@@ -48,7 +51,8 @@ class SearchPDF : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_search_pdf)
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+        val mainView = findViewById<View>(R.id.main)
+        ViewCompat.setOnApplyWindowInsetsListener(mainView) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
@@ -58,6 +62,7 @@ class SearchPDF : AppCompatActivity() {
         searchEditText = findViewById(R.id.searchEditText)
         recyclerView = findViewById(R.id.explorerRecyclerView)
         emptyStateTextView = findViewById(R.id.emptyStateTextView)
+        breadcrumbChipGroup = findViewById(R.id.breadcrumbChipGroup)
 
         explorerAdapter = ExplorerAdapter { item ->
             when (item) {
@@ -103,6 +108,8 @@ class SearchPDF : AppCompatActivity() {
         loader?.visibility = View.VISIBLE
         emptyStateTextView?.visibility = View.GONE
 
+        updateBreadcrumbsUI()
+
         val apiService = ApiClient.getService(this)
 
         apiService.getFolders(currentFolderId).enqueue(object : Callback<List<Folder>> {
@@ -113,14 +120,18 @@ class SearchPDF : AppCompatActivity() {
                     loadDocumentsInCurrentFolder()
                 } else {
                     loader?.visibility = View.GONE
-                    Toast.makeText(this@SearchPDF, "Hiba a mappák betöltésekor", Toast.LENGTH_SHORT).show()
+                    showErrorSnackbar("Hiba a mappák betöltésekor") {
+                        loadCurrentFolderContent()
+                    }
                 }
             }
 
             override fun onFailure(call: Call<List<Folder>>, t: Throwable) {
                 loader?.visibility = View.GONE
                 Log.e("SearchPDF", "Hiba a mappák lekérésekor", t)
-                Toast.makeText(this@SearchPDF, "Hálózati hiba: ${t.localizedMessage}", Toast.LENGTH_SHORT).show()
+                showErrorSnackbar("Hálózati hiba történt") {
+                    loadCurrentFolderContent()
+                }
             }
         })
     }
@@ -136,14 +147,18 @@ class SearchPDF : AppCompatActivity() {
                     response.body()?.let { currentDocuments.addAll(it) }
                     displayCurrentDirectory()
                 } else {
-                    Toast.makeText(this@SearchPDF, "Hiba a dokumentumok betöltésekor", Toast.LENGTH_SHORT).show()
+                    showErrorSnackbar("Hiba a dokumentumok betöltésekor") {
+                        loadDocumentsInCurrentFolder()
+                    }
                 }
             }
 
             override fun onFailure(call: Call<List<Document>>, t: Throwable) {
                 loader?.visibility = View.GONE
                 Log.e("SearchPDF", "Hiba a dokumentumok lekérésekor", t)
-                Toast.makeText(this@SearchPDF, "Hálózati hiba", Toast.LENGTH_SHORT).show()
+                showErrorSnackbar("Hálózati hiba történt") {
+                    loadDocumentsInCurrentFolder()
+                }
             }
         })
     }
@@ -161,16 +176,52 @@ class SearchPDF : AppCompatActivity() {
                     val searchResults = response.body() ?: emptyList()
                     displaySearchResults(searchResults)
                 } else {
-                    Toast.makeText(this@SearchPDF, "Hiba a keresés során", Toast.LENGTH_SHORT).show()
+                    showErrorSnackbar("Hiba a keresés során") {
+                        searchDocumentsInApi(query)
+                    }
                 }
             }
 
             override fun onFailure(call: Call<List<Document>>, t: Throwable) {
                 loader?.visibility = View.GONE
                 Log.e("SearchPDF", "Hiba a kereséskor", t)
-                Toast.makeText(this@SearchPDF, "Hálózati hiba", Toast.LENGTH_SHORT).show()
+                showErrorSnackbar("Hálózati hiba történt") {
+                    searchDocumentsInApi(query)
+                }
             }
         })
+    }
+
+    private fun updateBreadcrumbsUI() {
+        breadcrumbChipGroup?.removeAllViews()
+
+        val rootChip = Chip(this).apply {
+            text = "📁 Gyökér"
+            isCheckable = false
+            setOnClickListener {
+                folderStack.clear()
+                currentFolderId = null
+                loadCurrentFolderContent()
+            }
+        }
+        breadcrumbChipGroup?.addView(rootChip)
+
+        for (i in folderStack.indices) {
+            val (folderId, folderName) = folderStack[i]
+            val chip = Chip(this).apply {
+                text = "› $folderName"
+                isCheckable = false
+                setOnClickListener {
+                    // Navigate to this specific depth
+                    while (folderStack.size > i + 1) {
+                        folderStack.removeAt(folderStack.size - 1)
+                    }
+                    currentFolderId = folderId
+                    loadCurrentFolderContent()
+                }
+            }
+            breadcrumbChipGroup?.addView(chip)
+        }
     }
 
     private fun downloadPdfAndOpen(doc: Document) {
@@ -196,20 +247,26 @@ class SearchPDF : AppCompatActivity() {
                             Log.e("SearchPDF", "Fájl mentési hiba", e)
                             runOnUiThread {
                                 loader?.visibility = View.GONE
-                                Toast.makeText(this@SearchPDF, "Hiba a fájl mentésekor", Toast.LENGTH_SHORT).show()
+                                showErrorSnackbar("Hiba a fájl mentésekor") {
+                                    downloadPdfAndOpen(doc)
+                                }
                             }
                         }
                     }.start()
                 } else {
                     loader?.visibility = View.GONE
-                    Toast.makeText(this@SearchPDF, "Hiba a PDF letöltésekor", Toast.LENGTH_SHORT).show()
+                    showErrorSnackbar("Hiba a PDF letöltésekor") {
+                        downloadPdfAndOpen(doc)
+                    }
                 }
             }
 
             override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
                 loader?.visibility = View.GONE
                 Log.e("SearchPDF", "Hiba a letöltéskor", t)
-                Toast.makeText(this@SearchPDF, "Hálózati hiba letöltéskor", Toast.LENGTH_SHORT).show()
+                showErrorSnackbar("Hálózati hiba letöltéskor") {
+                    downloadPdfAndOpen(doc)
+                }
             }
         })
     }
@@ -259,5 +316,12 @@ class SearchPDF : AppCompatActivity() {
             val items = docs.map { ExplorerItem.DocumentItem(it) }
             explorerAdapter.updateItems(items)
         }
+    }
+
+    private fun showErrorSnackbar(message: String, onRetry: () -> Unit) {
+        val mainView = findViewById<View>(R.id.main) ?: return
+        Snackbar.make(mainView, message, Snackbar.LENGTH_INDEFINITE)
+            .setAction("ÚJRA") { onRetry() }
+            .show()
     }
 }

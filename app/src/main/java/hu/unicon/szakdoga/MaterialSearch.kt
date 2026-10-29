@@ -6,16 +6,15 @@ import android.text.TextWatcher
 import android.util.Log
 import android.view.View
 import android.widget.EditText
-import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.snackbar.Snackbar
 import hu.unicon.szakdoga.adapter.MaterialAdapter
 import hu.unicon.szakdoga.api.ApiClient
 import hu.unicon.szakdoga.model.Material
@@ -36,13 +35,13 @@ class MaterialSearch : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_material_search)
         
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+        val mainView = findViewById<View>(R.id.main)
+        ViewCompat.setOnApplyWindowInsetsListener(mainView) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
-        val clearButton = findViewById<ImageView>(R.id.clearButton)
         searchEditText = findViewById(R.id.searchEditText)
         recyclerView = findViewById(R.id.materialsRecyclerView)
         loader = findViewById(R.id.loader)
@@ -53,18 +52,12 @@ class MaterialSearch : AppCompatActivity() {
 
         searchEditText?.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
-                clearButton.visibility = if (s.isNotEmpty()) View.VISIBLE else View.GONE
-            }
+            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
 
             override fun afterTextChanged(s: Editable) {
                 fetchMaterialsFromApi(s.toString().trim())
             }
         })
-
-        clearButton.setOnClickListener {
-            searchEditText?.setText("")
-        }
 
         fetchMaterialsFromApi("")
     }
@@ -91,15 +84,26 @@ class MaterialSearch : AppCompatActivity() {
                         recyclerView?.visibility = View.VISIBLE
                     }
                 } else {
-                    Toast.makeText(this@MaterialSearch, "Hiba az adatok lekérésekor", Toast.LENGTH_SHORT).show()
+                    showErrorSnackbar("Hiba az adatok lekérésekor") {
+                        fetchMaterialsFromApi(query)
+                    }
                 }
             }
 
             override fun onFailure(call: Call<List<Material>>, t: Throwable) {
                 loader?.visibility = View.GONE
                 Log.e("MaterialSearch", "API hívási hiba", t)
-                Toast.makeText(this@MaterialSearch, "Hálózati hiba: ${t.localizedMessage}", Toast.LENGTH_SHORT).show()
+                showErrorSnackbar("Hálózati hiba történt") {
+                    fetchMaterialsFromApi(query)
+                }
             }
         })
+    }
+
+    private fun showErrorSnackbar(message: String, onRetry: () -> Unit) {
+        val mainView = findViewById<View>(R.id.main) ?: return
+        Snackbar.make(mainView, message, Snackbar.LENGTH_INDEFINITE)
+            .setAction("ÚJRA") { onRetry() }
+            .show()
     }
 }
