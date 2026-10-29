@@ -1,6 +1,5 @@
 package hu.unicon.szakdoga
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -8,10 +7,7 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
 import android.view.View
-import android.view.ViewGroup
-import android.widget.Button
 import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -19,6 +15,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import hu.unicon.szakdoga.adapter.ExplorerAdapter
+import hu.unicon.szakdoga.adapter.ExplorerItem
 import hu.unicon.szakdoga.api.ApiClient
 import hu.unicon.szakdoga.model.Document
 import hu.unicon.szakdoga.model.Folder
@@ -31,14 +31,17 @@ import java.io.FileOutputStream
 
 class SearchPDF : AppCompatActivity() {
     private var searchEditText: EditText? = null
-    private var resultContainer: LinearLayout? = null
+    private var recyclerView: RecyclerView? = null
     private var loader: ProgressBar? = null
+    private var emptyStateTextView: TextView? = null
 
     private var currentFolderId: Long? = null
     private val folderStack = mutableListOf<Pair<Long?, String>>()
 
     private val currentFolders = mutableListOf<Folder>()
     private val currentDocuments = mutableListOf<Document>()
+
+    private lateinit var explorerAdapter: ExplorerAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,7 +56,31 @@ class SearchPDF : AppCompatActivity() {
 
         loader = findViewById(R.id.loader)
         searchEditText = findViewById(R.id.searchEditText)
-        resultContainer = findViewById(R.id.resultContainer)
+        recyclerView = findViewById(R.id.explorerRecyclerView)
+        emptyStateTextView = findViewById(R.id.emptyStateTextView)
+
+        explorerAdapter = ExplorerAdapter { item ->
+            when (item) {
+                is ExplorerItem.Back -> {
+                    if (folderStack.isNotEmpty()) {
+                        folderStack.removeAt(folderStack.size - 1)
+                        currentFolderId = folderStack.lastOrNull()?.first
+                        loadCurrentFolderContent()
+                    }
+                }
+                is ExplorerItem.FolderItem -> {
+                    folderStack.add(Pair(item.folder.id, item.folder.name))
+                    currentFolderId = item.folder.id
+                    loadCurrentFolderContent()
+                }
+                is ExplorerItem.DocumentItem -> {
+                    downloadPdfAndOpen(item.document)
+                }
+            }
+        }
+
+        recyclerView?.layoutManager = LinearLayoutManager(this)
+        recyclerView?.adapter = explorerAdapter
 
         searchEditText?.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -74,6 +101,8 @@ class SearchPDF : AppCompatActivity() {
 
     private fun loadCurrentFolderContent() {
         loader?.visibility = View.VISIBLE
+        emptyStateTextView?.visibility = View.GONE
+
         val apiService = ApiClient.getService(this)
 
         apiService.getFolders(currentFolderId).enqueue(object : Callback<List<Folder>> {
@@ -121,6 +150,8 @@ class SearchPDF : AppCompatActivity() {
 
     private fun searchDocumentsInApi(query: String) {
         loader?.visibility = View.VISIBLE
+        emptyStateTextView?.visibility = View.GONE
+
         val apiService = ApiClient.getService(this)
 
         apiService.searchDocuments(query).enqueue(object : Callback<List<Document>> {
@@ -193,97 +224,40 @@ class SearchPDF : AppCompatActivity() {
         startActivity(intent)
     }
 
-    @SuppressLint("SetTextI18n")
     private fun displayCurrentDirectory() {
-        resultContainer?.removeAllViews()
+        val items = mutableListOf<ExplorerItem>()
 
         if (folderStack.isNotEmpty()) {
-            val backBtn = Button(this).apply {
-                text = "<-- Vissza"
-                setOnClickListener {
-                    folderStack.removeAt(folderStack.size - 1)
-                    currentFolderId = folderStack.lastOrNull()?.first
-                    loadCurrentFolderContent()
-                }
-            }
-            styleButton(backBtn)
-            resultContainer?.addView(backBtn)
-        }
-
-        if (currentFolders.isEmpty() && currentDocuments.isEmpty()) {
-            showLoadingMessage("Üres mappa")
-            return
+            items.add(ExplorerItem.Back)
         }
 
         for (folder in currentFolders) {
-            val btn = Button(this).apply {
-                text = "📁 ${folder.name}"
-                setOnClickListener {
-                    folderStack.add(Pair(folder.id, folder.name))
-                    currentFolderId = folder.id
-                    loadCurrentFolderContent()
-                }
-            }
-            styleButton(btn)
-            resultContainer?.addView(btn)
+            items.add(ExplorerItem.FolderItem(folder))
         }
 
         for (doc in currentDocuments) {
-            val btn = Button(this).apply {
-                text = "📄 ${doc.title}"
-                setOnClickListener {
-                    downloadPdfAndOpen(doc)
-                }
-            }
-            styleButton(btn)
-            resultContainer?.addView(btn)
+            items.add(ExplorerItem.DocumentItem(doc))
+        }
+
+        if (items.isEmpty() || (items.size == 1 && items.first() is ExplorerItem.Back)) {
+            emptyStateTextView?.text = "Üres mappa"
+            emptyStateTextView?.visibility = View.VISIBLE
+            explorerAdapter.updateItems(items)
+        } else {
+            emptyStateTextView?.visibility = View.GONE
+            explorerAdapter.updateItems(items)
         }
     }
 
     private fun displaySearchResults(docs: List<Document>) {
-        resultContainer?.removeAllViews()
-
         if (docs.isEmpty()) {
-            showLoadingMessage("Nincs a keresésnek megfelelő PDF")
-            return
+            emptyStateTextView?.text = "Nincs a keresésnek megfelelő PDF"
+            emptyStateTextView?.visibility = View.VISIBLE
+            explorerAdapter.updateItems(emptyList())
+        } else {
+            emptyStateTextView?.visibility = View.GONE
+            val items = docs.map { ExplorerItem.DocumentItem(it) }
+            explorerAdapter.updateItems(items)
         }
-
-        for (doc in docs) {
-            val btn = Button(this).apply {
-                text = "📄 ${doc.title}\n(${doc.fileName})"
-                setOnClickListener {
-                    downloadPdfAndOpen(doc)
-                }
-            }
-            styleButton(btn)
-            resultContainer?.addView(btn)
-        }
-    }
-
-    private fun showLoadingMessage(message: String) {
-        resultContainer?.removeAllViews()
-        val msg = TextView(this).apply {
-            setPadding(30, 30, 30, 30)
-            textSize = 20f
-            textAlignment = View.TEXT_ALIGNMENT_CENTER
-            setTextColor(resources.getColor(R.color.white, null))
-            text = message
-        }
-        resultContainer?.addView(msg)
-    }
-
-    private fun styleButton(btn: Button) {
-        btn.setPadding(30, 30, 30, 30)
-        btn.layoutParams = LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply {
-            setMargins(0, 0, 0, 30)
-        }
-        btn.textSize = 20f
-        btn.setBackgroundResource(R.drawable.rounded_edittext)
-        btn.textAlignment = View.TEXT_ALIGNMENT_VIEW_START
-        btn.setTextColor(resources.getColor(R.color.white, null))
-        btn.elevation = 1f
     }
 }

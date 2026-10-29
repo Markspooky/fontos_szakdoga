@@ -8,7 +8,6 @@
     tools:context=".SearchPDF"
     style="@style/Bars">
 
-    <!-- Háttérréteg -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -27,34 +26,39 @@
             android:padding="12dp"
             android:background="@drawable/rounded_edittext"
             android:inputType="text"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="12dp" />
 
-        <!-- ScrollView eredményekhez -->
-        <ScrollView
-            android:id="@+id/item_SV"
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:fillViewport="true"
-            android:layout_marginBottom="16dp">
+            android:layout_weight="1">
 
-            <LinearLayout
-                android:id="@+id/resultContainer"
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/explorerRecyclerView"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp"
-                android:gravity="center_horizontal" />
-        </ScrollView>
-    </LinearLayout>
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingBottom="16dp"
+                tools:listitem="@layout/item_explorer" />
 
-    <!-- Középen megjelenő loader -->
-    <ProgressBar
-        android:id="@+id/loader"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:layout_gravity="center"
-        android:indeterminate="true"
-        android:visibility="gone"
-        style="?android:attr/progressBarStyleLarge" />
+            <TextView
+                android:id="@+id/emptyStateTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="Nincs találat"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                android:visibility="gone" />
+
+            <ProgressBar
+                android:id="@+id/loader"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                android:visibility="gone"
+                style="?android:attr/progressBarStyleLarge" />
+        </FrameLayout>
+    </LinearLayout>
 </FrameLayout>

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -8,7 +9,6 @@
     android:background="@drawable/background"
     style="@style/Bars">
 
-    <!-- Beágyazott LinearLayout a tartalom strukturálására -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -18,7 +18,8 @@
         <!-- Keresőmező -->
         <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp">
 
             <EditText
                 android:id="@+id/searchEditText"
@@ -45,23 +46,37 @@
                 android:visibility="gone" />
         </RelativeLayout>
 
-        <!-- Eredmény lista ScrollView-ban -->
-        <ScrollView
-            android:id="@+id/item_SV"
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:fillViewport="true"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="16dp">
+            android:layout_weight="1">
 
-            <LinearLayout
-                android:id="@+id/resultContainer"
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/materialsRecyclerView"
                 android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingBottom="16dp"
+                tools:listitem="@layout/item_material" />
+
+            <TextView
+                android:id="@+id/emptyStateTextView"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp"
-                android:gravity="center_horizontal" />
-        </ScrollView>
+                android:layout_gravity="center"
+                android:text="Nincs találat"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                android:visibility="gone" />
+
+            <ProgressBar
+                android:id="@+id/loader"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                android:visibility="gone"
+                style="?android:attr/progressBarStyleLarge" />
+        </FrameLayout>
     </LinearLayout>
 </FrameLayout>
