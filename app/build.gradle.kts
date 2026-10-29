@@ -49,6 +49,8 @@ android {
     buildFeatures {
         viewBinding = true
     }
+
+
 }
 
 // Modern Kotlin 2.0+ compiler configuration
@@ -110,4 +112,58 @@ tasks.withType<Detekt>().configureEach {
         xml.required.set(true)
         html.required.set(true)
     }
+}
+
+// Fix for running Kotlin main() functions from src/test in Android Studio.
+// Android Studio generates an init script looking for `project.sourceSets['unitTest'].runtimeClasspath`.
+// Since AGP does not expose a 'unitTest' sourceSet directly, we provide a wrapper fallback.
+class SourceSetsWrapper(
+    private val delegate: NamedDomainObjectContainer<*>,
+    private val unitTestFallback: Any
+) {
+    @Suppress("unused")
+    fun getAt(name: String): Any? {
+        if (name == "unitTest") return unitTestFallback
+        return delegate.findByName(name)
+    }
+
+    @Suppress("unused")
+    fun getByName(name: String): Any? {
+        if (name == "unitTest") return unitTestFallback
+        return delegate.getByName(name)
+    }
+
+    @Suppress("unused")
+    fun findByName(name: String): Any? {
+        if (name == "unitTest") return unitTestFallback
+        return delegate.findByName(name)
+    }
+}
+
+val realSourceSets = project.extensions.getByName("sourceSets") as NamedDomainObjectContainer<*>
+val unitTestFallback = object {
+    @Suppress("unused")
+    val runtimeClasspath = files(
+        "${layout.buildDirectory.get()}/tmp/kotlin-classes/debugUnitTest",
+        "${layout.buildDirectory.get()}/tmp/kotlin-classes/debug",
+        provider { configurations.findByName("debugUnitTestRuntimeClasspath") ?: emptyList<Any>() }
+    )
+}
+project.extra["sourceSets"] = SourceSetsWrapper(realSourceSets, unitTestFallback)
+
+// Task to run MockApiServer directly via Gradle (e.g., ./gradlew :app:runMockServer)
+tasks.register<JavaExec>("runMockServer") {
+    group = "application"
+    description = "Runs the Mock REST API Server"
+    mainClass.set("hu.unicon.szakdoga.MockApiServer")
+
+    val testCompilation = tasks.named("compileDebugUnitTestKotlin")
+    val mainCompilation = tasks.named("compileDebugKotlin")
+    dependsOn(testCompilation, mainCompilation)
+
+    classpath = files(
+        "${layout.buildDirectory.get()}/tmp/kotlin-classes/debugUnitTest",
+        "${layout.buildDirectory.get()}/tmp/kotlin-classes/debug",
+        provider { configurations.findByName("debugUnitTestRuntimeClasspath") ?: emptyList<Any>() }
+    )
 }
