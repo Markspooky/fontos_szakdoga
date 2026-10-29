@@ -1,6 +1,8 @@
 package hu.unicon.szakdoga
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
@@ -29,6 +31,8 @@ class MaterialSearch : AppCompatActivity() {
     private var emptyStateTextView: TextView? = null
 
     private val materialAdapter = MaterialAdapter()
+    private val searchHandler = Handler(Looper.getMainLooper())
+    private var searchRunnable: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,11 +59,20 @@ class MaterialSearch : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
 
             override fun afterTextChanged(s: Editable) {
-                fetchMaterialsFromApi(s.toString().trim())
+                searchRunnable?.let { searchHandler.removeCallbacks(it) }
+                searchRunnable = Runnable {
+                    fetchMaterialsFromApi(s.toString().trim())
+                }
+                searchHandler.postDelayed(searchRunnable!!, 300)
             }
         })
 
         fetchMaterialsFromApi("")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        searchRunnable?.let { searchHandler.removeCallbacks(it) }
     }
 
     private fun fetchMaterialsFromApi(query: String) {

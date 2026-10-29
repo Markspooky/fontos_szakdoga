@@ -3,6 +3,8 @@ package hu.unicon.szakdoga
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
@@ -45,6 +47,8 @@ class SearchPDF : AppCompatActivity() {
     private val currentDocuments = mutableListOf<Document>()
 
     private lateinit var explorerAdapter: ExplorerAdapter
+    private val searchHandler = Handler(Looper.getMainLooper())
+    private var searchRunnable: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,72 +96,101 @@ class SearchPDF : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
 
             override fun afterTextChanged(s: Editable) {
-                val query = s.toString().trim()
-                if (query.isEmpty()) {
-                    loadCurrentFolderContent()
-                } else if (query.length >= 2) {
-                    searchDocumentsInApi(query)
+                searchRunnable?.let { searchHandler.removeCallbacks(it) }
+                searchRunnable = Runnable {
+                    val query = s.toString().trim()
+                    if (query.isEmpty()) {
+                        loadCurrentFolderContent()
+                    } else if (query.length >= 2) {
+                        searchDocumentsInApi(query)
+                    }
                 }
+                searchHandler.postDelayed(searchRunnable!!, 300)
             }
         })
 
         loadCurrentFolderContent()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        searchRunnable?.let { searchHandler.removeCallbacks(it) }
+    }
+
     private fun loadCurrentFolderContent() {
+        // Immediate UI feedback on touch/navigation
         loader?.visibility = View.VISIBLE
         emptyStateTextView?.visibility = View.GONE
-
+        currentFolders.clear()
+        currentDocuments.clear()
+        displayCurrentDirectory()
         updateBreadcrumbsUI()
 
         val apiService = ApiClient.getService(this)
+        val targetFolderId = currentFolderId
 
-        apiService.getFolders(currentFolderId).enqueue(object : Callback<List<Folder>> {
+        var foldersFetched = false
+        var docsFetched = false
+        var hasError = false
+
+        fun checkAndDisplay() {
+            if (hasError) return
+            if (foldersFetched && docsFetched) {
+                loader?.visibility = View.GONE
+                displayCurrentDirectory()
+            }
+        }
+
+        // Parallel Request 1: Folders
+        apiService.getFolders(targetFolderId).enqueue(object : Callback<List<Folder>> {
             override fun onResponse(call: Call<List<Folder>>, response: Response<List<Folder>>) {
                 if (response.isSuccessful) {
                     currentFolders.clear()
                     response.body()?.let { currentFolders.addAll(it) }
-                    loadDocumentsInCurrentFolder()
+                    foldersFetched = true
+                    checkAndDisplay()
                 } else {
-                    loader?.visibility = View.GONE
-                    showErrorSnackbar("Hiba a mappák betöltésekor") {
-                        loadCurrentFolderContent()
+                    if (!hasError) {
+                        hasError = true
+                        loader?.visibility = View.GONE
+                        showErrorSnackbar("Hiba a mappák betöltésekor") { loadCurrentFolderContent() }
                     }
                 }
             }
 
             override fun onFailure(call: Call<List<Folder>>, t: Throwable) {
-                loader?.visibility = View.GONE
-                Log.e("SearchPDF", "Hiba a mappák lekérésekor", t)
-                showErrorSnackbar("Hálózati hiba történt") {
-                    loadCurrentFolderContent()
+                if (!hasError) {
+                    hasError = true
+                    loader?.visibility = View.GONE
+                    Log.e("SearchPDF", "Hiba a mappák lekérésekor", t)
+                    showErrorSnackbar("Hálózati hiba történt") { loadCurrentFolderContent() }
                 }
             }
         })
-    }
 
-    private fun loadDocumentsInCurrentFolder() {
-        val apiService = ApiClient.getService(this)
-
-        apiService.getDocuments(currentFolderId).enqueue(object : Callback<List<Document>> {
+        // Parallel Request 2: Documents
+        apiService.getDocuments(targetFolderId).enqueue(object : Callback<List<Document>> {
             override fun onResponse(call: Call<List<Document>>, response: Response<List<Document>>) {
-                loader?.visibility = View.GONE
                 if (response.isSuccessful) {
                     currentDocuments.clear()
                     response.body()?.let { currentDocuments.addAll(it) }
-                    displayCurrentDirectory()
+                    docsFetched = true
+                    checkAndDisplay()
                 } else {
-                    showErrorSnackbar("Hiba a dokumentumok betöltésekor") {
-                        loadDocumentsInCurrentFolder()
+                    if (!hasError) {
+                        hasError = true
+                        loader?.visibility = View.GONE
+                        showErrorSnackbar("Hiba a dokumentumok betöltésekor") { loadCurrentFolderContent() }
                     }
                 }
             }
 
             override fun onFailure(call: Call<List<Document>>, t: Throwable) {
-                loader?.visibility = View.GONE
-                Log.e("SearchPDF", "Hiba a dokumentumok lekérésekor", t)
-                showErrorSnackbar("Hálózati hiba történt") {
-                    loadDocumentsInCurrentFolder()
+                if (!hasError) {
+                    hasError = true
+                    loader?.visibility = View.GONE
+                    Log.e("SearchPDF", "Hiba a dokumentumok lekérésekor", t)
+                    showErrorSnackbar("Hálózati hiba történt") { loadCurrentFolderContent() }
                 }
             }
         })
@@ -212,7 +245,6 @@ class SearchPDF : AppCompatActivity() {
                 text = "› $folderName"
                 isCheckable = false
                 setOnClickListener {
-                    // Navigate to this specific depth
                     while (folderStack.size > i + 1) {
                         folderStack.removeAt(folderStack.size - 1)
                     }
@@ -297,8 +329,12 @@ class SearchPDF : AppCompatActivity() {
         }
 
         if (items.isEmpty() || (items.size == 1 && items.first() is ExplorerItem.Back)) {
-            emptyStateTextView?.text = "Üres mappa"
-            emptyStateTextView?.visibility = View.VISIBLE
+            if (loader?.visibility != View.VISIBLE) {
+                emptyStateTextView?.text = "Üres mappa"
+                emptyStateTextView?.visibility = View.VISIBLE
+            } else {
+                emptyStateTextView?.visibility = View.GONE
+            }
             explorerAdapter.updateItems(items)
         } else {
             emptyStateTextView?.visibility = View.GONE
