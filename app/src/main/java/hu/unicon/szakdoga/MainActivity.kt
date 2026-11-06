@@ -8,19 +8,31 @@ import android.view.View
 import android.view.animation.AnimationUtils
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import hu.unicon.szakdoga.api.ApiClient
+import hu.unicon.szakdoga.api.UserSession
 
 class MainActivity : AppCompatActivity() {
     private var configButton: Button? = null
+    private var menuButton: ImageView? = null
+    private var userBadgeTextView: TextView? = null
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Redirect if not logged in
+        if (!UserSession.isLoggedIn(this)) {
+            redirectToLogin()
+            return
+        }
+
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
@@ -31,7 +43,23 @@ class MainActivity : AppCompatActivity() {
         }
 
         configButton = findViewById(R.id.load_config_button)
-        updateConfigButtonText()
+        menuButton = findViewById(R.id.menubutton)
+        userBadgeTextView = findViewById(R.id.userBadgeTextView)
+
+        val currentUser = UserSession.getUser(this)
+        if (currentUser != null) {
+            userBadgeTextView?.text = "Bejelentkezve: ${currentUser.name} (${currentUser.getRoleDisplayName()})"
+        }
+
+        // Role-based visibility: Config button is ONLY visible for Admin
+        if (UserSession.isAdmin(this)) {
+            configButton?.visibility = View.VISIBLE
+            menuButton?.visibility = View.VISIBLE
+            updateConfigButtonText()
+        } else {
+            configButton?.visibility = View.GONE
+            menuButton?.visibility = View.GONE
+        }
 
         val title = findViewById<View>(R.id.title)
         val belepes = findViewById<View>(R.id.belepes)
@@ -51,12 +79,28 @@ class MainActivity : AppCompatActivity() {
         configButton?.text = "API: $currentUrl"
     }
 
+    fun logoutUser(view: View?) {
+        UserSession.logout(this)
+        Toast.makeText(this, "Kijelentkezve", Toast.LENGTH_SHORT).show()
+        redirectToLogin()
+    }
+
+    private fun redirectToLogin() {
+        val intent = Intent(this, LoginActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
+
     fun menuPoint(view: View?) {
-        showServerUrlDialog()
+        if (UserSession.isAdmin(this)) {
+            showServerUrlDialog()
+        }
     }
 
     fun selectConfigFromJsonFile(view: View?) {
-        showServerUrlDialog()
+        if (UserSession.isAdmin(this)) {
+            showServerUrlDialog()
+        }
     }
 
     private fun showServerUrlDialog() {

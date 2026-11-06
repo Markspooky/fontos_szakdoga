@@ -12,14 +12,12 @@
         android:id="@+id/main"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="32dp">
+        android:padding="24dp">
 
         <ImageView
             android:id="@+id/menubutton"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:onClick="menuPoint"
             android:src="@drawable/hamburgerwhite"
             app:layout_constraintStart_toStartOf="parent"
@@ -29,26 +27,39 @@
             android:id="@+id/load_config_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="12dp"
             android:onClick="selectConfigFromJsonFile"
             android:text="Konfiguráció kiválasztása"
             app:layout_constraintStart_toEndOf="@id/menubutton"
             app:layout_constraintTop_toTopOf="@id/menubutton"
             android:textColor="@android:color/white"
-            android:textSize="18sp"
+            android:textSize="14sp"
             android:textAllCaps="false"
             android:letterSpacing="0"
-            app:cornerRadius="16dp"
+            app:cornerRadius="12dp"
             app:backgroundTint="@color/primary"
-            app:rippleColor="@color/primary_dark"
-            app:iconGravity="textStart"
-            app:iconTint="@android:color/white" />
+            app:rippleColor="@color/primary_dark" />
+
+        <!-- Logout Button & User Badge at Top Right -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/logoutButton"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="logoutUser"
+            android:text="Kijelentkezés"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            app:strokeColor="@color/white"
+            app:cornerRadius="12dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <LinearLayout
             android:id="@+id/main_buttons_container"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="60dp"
+            android:layout_marginTop="40dp"
             android:gravity="center_horizontal"
             android:orientation="vertical"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -57,10 +68,20 @@
             app:layout_constraintTop_toTopOf="parent">
 
             <TextView
+                android:id="@+id/userBadgeTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="Bejelentkezve: Kovács Péter (Műszakvezető)"
+                android:textColor="#E0E0E0"
+                android:textSize="16sp"
+                android:textStyle="italic" />
+
+            <TextView
                 android:id="@+id/title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="48dp"
+                android:layout_marginBottom="40dp"
                 android:text="Üdvözlünk!"
                 android:textColor="@color/white"
                 android:textSize="36sp"

@@ -44,6 +44,15 @@ class MockApiServer {
 
                     socket.getOutputStream().use { outputStream ->
                         when {
+                            pathWithQuery.startsWith("/api/login") -> {
+                                val username = getQueryParam(pathWithQuery, "username")?.lowercase()
+                                val json = when (username) {
+                                    "admin" -> """{"id": 1, "username": "admin", "name": "Rendszergazda", "role": "ADMIN"}"""
+                                    "muszi", "mueszi" -> """{"id": 2, "username": "muszi", "name": "Kovács Péter", "role": "MUSZI"}"""
+                                    else -> """{"id": 3, "username": "worker", "name": "Szabó János", "role": "WORKER"}"""
+                                }
+                                sendJsonResponse(outputStream, json)
+                            }
                             pathWithQuery.startsWith("/api/categories") -> {
                                 val json = """[
                                     {"id": 1, "name": "Varrócérna", "description": "Magas minőségű varrócérnák"},
