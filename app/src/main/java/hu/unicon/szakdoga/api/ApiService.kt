@@ -4,6 +4,7 @@ import hu.unicon.szakdoga.model.Category
 import hu.unicon.szakdoga.model.Document
 import hu.unicon.szakdoga.model.Folder
 import hu.unicon.szakdoga.model.Material
+import hu.unicon.szakdoga.model.User
 import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.http.GET
@@ -12,6 +13,9 @@ import retrofit2.http.Query
 import retrofit2.http.Streaming
 
 interface ApiService {
+
+    @GET("login")
+    fun login(@Query("username") username: String): Call<User>
 
     @GET("categories")
     fun getCategories(): Call<List<Category>>

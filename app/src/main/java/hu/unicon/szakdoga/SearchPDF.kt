@@ -1,38 +1,40 @@
 package hu.unicon.szakdoga
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
 import android.view.View
-import android.view.ViewGroup
-import android.widget.Button
 import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import hu.unicon.szakdoga.api.ApiClient
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import com.google.android.material.snackbar.Snackbar
+import hu.unicon.szakdoga.adapter.ExplorerAdapter
+import hu.unicon.szakdoga.adapter.ExplorerItem
 import hu.unicon.szakdoga.model.Document
 import hu.unicon.szakdoga.model.Folder
-import okhttp3.ResponseBody
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import hu.unicon.szakdoga.repository.RepositoryProvider
 import java.io.File
 import java.io.FileOutputStream
 
 class SearchPDF : AppCompatActivity() {
     private var searchEditText: EditText? = null
-    private var resultContainer: LinearLayout? = null
+    private var recyclerView: RecyclerView? = null
     private var loader: ProgressBar? = null
+    private var emptyStateTextView: TextView? = null
+    private var breadcrumbChipGroup: ChipGroup? = null
 
     private var currentFolderId: Long? = null
     private val folderStack = mutableListOf<Pair<Long?, String>>()
@@ -40,12 +42,17 @@ class SearchPDF : AppCompatActivity() {
     private val currentFolders = mutableListOf<Folder>()
     private val currentDocuments = mutableListOf<Document>()
 
+    private lateinit var explorerAdapter: ExplorerAdapter
+    private val searchHandler = Handler(Looper.getMainLooper())
+    private var searchRunnable: Runnable? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_search_pdf)
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+        val mainView = findViewById<View>(R.id.main)
+        ViewCompat.setOnApplyWindowInsetsListener(mainView) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
@@ -53,134 +60,204 @@ class SearchPDF : AppCompatActivity() {
 
         loader = findViewById(R.id.loader)
         searchEditText = findViewById(R.id.searchEditText)
-        resultContainer = findViewById(R.id.resultContainer)
+        recyclerView = findViewById(R.id.explorerRecyclerView)
+        emptyStateTextView = findViewById(R.id.emptyStateTextView)
+        breadcrumbChipGroup = findViewById(R.id.breadcrumbChipGroup)
+
+        explorerAdapter = ExplorerAdapter { item ->
+            when (item) {
+                is ExplorerItem.Back -> {
+                    if (folderStack.isNotEmpty()) {
+                        folderStack.removeAt(folderStack.size - 1)
+                        currentFolderId = folderStack.lastOrNull()?.first
+                        loadCurrentFolderContent()
+                    }
+                }
+                is ExplorerItem.FolderItem -> {
+                    folderStack.add(Pair(item.folder.id, item.folder.name))
+                    currentFolderId = item.folder.id
+                    loadCurrentFolderContent()
+                }
+                is ExplorerItem.DocumentItem -> {
+                    downloadPdfAndOpen(item.document)
+                }
+            }
+        }
+
+        recyclerView?.layoutManager = LinearLayoutManager(this)
+        recyclerView?.adapter = explorerAdapter
 
         searchEditText?.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
 
             override fun afterTextChanged(s: Editable) {
-                val query = s.toString().trim()
-                if (query.isEmpty()) {
-                    loadCurrentFolderContent()
-                } else if (query.length >= 2) {
-                    searchDocumentsInApi(query)
+                searchRunnable?.let { searchHandler.removeCallbacks(it) }
+                searchRunnable = Runnable {
+                    val query = s.toString().trim()
+                    if (query.isEmpty()) {
+                        loadCurrentFolderContent()
+                    } else if (query.length >= 2) {
+                        searchDocumentsInApi(query)
+                    }
                 }
+                searchHandler.postDelayed(searchRunnable!!, 300)
             }
         })
 
         loadCurrentFolderContent()
     }
 
-    private fun loadCurrentFolderContent() {
-        loader?.visibility = View.VISIBLE
-        val apiService = ApiClient.getService(this)
-
-        apiService.getFolders(currentFolderId).enqueue(object : Callback<List<Folder>> {
-            override fun onResponse(call: Call<List<Folder>>, response: Response<List<Folder>>) {
-                if (response.isSuccessful) {
-                    currentFolders.clear()
-                    response.body()?.let { currentFolders.addAll(it) }
-                    loadDocumentsInCurrentFolder()
-                } else {
-                    loader?.visibility = View.GONE
-                    Toast.makeText(this@SearchPDF, "Hiba a mappák betöltésekor", Toast.LENGTH_SHORT).show()
-                }
-            }
-
-            override fun onFailure(call: Call<List<Folder>>, t: Throwable) {
-                loader?.visibility = View.GONE
-                Log.e("SearchPDF", "Hiba a mappák lekérésekor", t)
-                Toast.makeText(this@SearchPDF, "Hálózati hiba: ${t.localizedMessage}", Toast.LENGTH_SHORT).show()
-            }
-        })
+    override fun onDestroy() {
+        super.onDestroy()
+        searchRunnable?.let { searchHandler.removeCallbacks(it) }
     }
 
-    private fun loadDocumentsInCurrentFolder() {
-        val apiService = ApiClient.getService(this)
+    private fun loadCurrentFolderContent() {
+        // Immediate UI feedback on touch/navigation
+        loader?.visibility = View.VISIBLE
+        emptyStateTextView?.visibility = View.GONE
+        currentFolders.clear()
+        currentDocuments.clear()
+        displayCurrentDirectory()
+        updateBreadcrumbsUI()
 
-        apiService.getDocuments(currentFolderId).enqueue(object : Callback<List<Document>> {
-            override fun onResponse(call: Call<List<Document>>, response: Response<List<Document>>) {
+        val repository = RepositoryProvider.getRepository(this)
+        val targetFolderId = currentFolderId
+
+        var foldersFetched = false
+        var docsFetched = false
+        var hasError = false
+
+        fun checkAndDisplay() {
+            if (hasError) return
+            if (foldersFetched && docsFetched) {
                 loader?.visibility = View.GONE
-                if (response.isSuccessful) {
-                    currentDocuments.clear()
-                    response.body()?.let { currentDocuments.addAll(it) }
-                    displayCurrentDirectory()
-                } else {
-                    Toast.makeText(this@SearchPDF, "Hiba a dokumentumok betöltésekor", Toast.LENGTH_SHORT).show()
+                displayCurrentDirectory()
+            }
+        }
+
+        // Parallel Request 1: Folders
+        repository.getFolders(targetFolderId) { result ->
+            result.onSuccess { folders ->
+                currentFolders.clear()
+                currentFolders.addAll(folders)
+                foldersFetched = true
+                checkAndDisplay()
+            }.onFailure { t ->
+                if (!hasError) {
+                    hasError = true
+                    loader?.visibility = View.GONE
+                    Log.e("SearchPDF", "Hiba a mappák lekérésekor", t)
+                    showErrorSnackbar("Hiba a mappák betöltésekor") { loadCurrentFolderContent() }
                 }
             }
+        }
 
-            override fun onFailure(call: Call<List<Document>>, t: Throwable) {
-                loader?.visibility = View.GONE
-                Log.e("SearchPDF", "Hiba a dokumentumok lekérésekor", t)
-                Toast.makeText(this@SearchPDF, "Hálózati hiba", Toast.LENGTH_SHORT).show()
+        // Parallel Request 2: Documents
+        repository.getDocuments(targetFolderId) { result ->
+            result.onSuccess { docs ->
+                currentDocuments.clear()
+                currentDocuments.addAll(docs)
+                docsFetched = true
+                checkAndDisplay()
+            }.onFailure { t ->
+                if (!hasError) {
+                    hasError = true
+                    loader?.visibility = View.GONE
+                    Log.e("SearchPDF", "Hiba a dokumentumok lekérésekor", t)
+                    showErrorSnackbar("Hiba a dokumentumok betöltésekor") { loadCurrentFolderContent() }
+                }
             }
-        })
+        }
     }
 
     private fun searchDocumentsInApi(query: String) {
         loader?.visibility = View.VISIBLE
-        val apiService = ApiClient.getService(this)
+        emptyStateTextView?.visibility = View.GONE
 
-        apiService.searchDocuments(query).enqueue(object : Callback<List<Document>> {
-            override fun onResponse(call: Call<List<Document>>, response: Response<List<Document>>) {
-                loader?.visibility = View.GONE
-                if (response.isSuccessful) {
-                    val searchResults = response.body() ?: emptyList()
-                    displaySearchResults(searchResults)
-                } else {
-                    Toast.makeText(this@SearchPDF, "Hiba a keresés során", Toast.LENGTH_SHORT).show()
+        val repository = RepositoryProvider.getRepository(this)
+
+        repository.searchDocuments(query) { result ->
+            loader?.visibility = View.GONE
+            result.onSuccess { searchResults ->
+                displaySearchResults(searchResults)
+            }.onFailure { t ->
+                Log.e("SearchPDF", "Hiba a kereséskor", t)
+                showErrorSnackbar("Hiba a keresés során") {
+                    searchDocumentsInApi(query)
                 }
             }
+        }
+    }
 
-            override fun onFailure(call: Call<List<Document>>, t: Throwable) {
-                loader?.visibility = View.GONE
-                Log.e("SearchPDF", "Hiba a kereséskor", t)
-                Toast.makeText(this@SearchPDF, "Hálózati hiba", Toast.LENGTH_SHORT).show()
+    private fun updateBreadcrumbsUI() {
+        breadcrumbChipGroup?.removeAllViews()
+
+        val rootChip = Chip(this).apply {
+            text = "📁 Gyökér"
+            isCheckable = false
+            setOnClickListener {
+                folderStack.clear()
+                currentFolderId = null
+                loadCurrentFolderContent()
             }
-        })
+        }
+        breadcrumbChipGroup?.addView(rootChip)
+
+        for (i in folderStack.indices) {
+            val (folderId, folderName) = folderStack[i]
+            val chip = Chip(this).apply {
+                text = "› $folderName"
+                isCheckable = false
+                setOnClickListener {
+                    while (folderStack.size > i + 1) {
+                        folderStack.removeAt(folderStack.size - 1)
+                    }
+                    currentFolderId = folderId
+                    loadCurrentFolderContent()
+                }
+            }
+            breadcrumbChipGroup?.addView(chip)
+        }
     }
 
     private fun downloadPdfAndOpen(doc: Document) {
         loader?.visibility = View.VISIBLE
-        val apiService = ApiClient.getService(this)
+        val repository = RepositoryProvider.getRepository(this)
 
-        apiService.downloadDocument(doc.id).enqueue(object : Callback<ResponseBody> {
-            override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
-                if (response.isSuccessful && response.body() != null) {
-                    Thread {
-                        try {
-                            val tempFile = File(cacheDir, doc.fileName)
-                            response.body()!!.byteStream().use { inputStream ->
-                                FileOutputStream(tempFile).use { outputStream ->
-                                    inputStream.copyTo(outputStream)
-                                }
-                            }
-                            runOnUiThread {
-                                loader?.visibility = View.GONE
-                                launchPdfViewer(tempFile.absolutePath, doc.title, doc.id)
-                            }
-                        } catch (e: Exception) {
-                            Log.e("SearchPDF", "Fájl mentési hiba", e)
-                            runOnUiThread {
-                                loader?.visibility = View.GONE
-                                Toast.makeText(this@SearchPDF, "Hiba a fájl mentésekor", Toast.LENGTH_SHORT).show()
+        repository.downloadDocument(doc.id) { result ->
+            result.onSuccess { responseBody ->
+                Thread {
+                    try {
+                        val tempFile = File(cacheDir, doc.fileName)
+                        responseBody.byteStream().use { inputStream ->
+                            FileOutputStream(tempFile).use { outputStream ->
+                                inputStream.copyTo(outputStream)
                             }
                         }
-                    }.start()
-                } else {
-                    loader?.visibility = View.GONE
-                    Toast.makeText(this@SearchPDF, "Hiba a PDF letöltésekor", Toast.LENGTH_SHORT).show()
-                }
-            }
-
-            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                        runOnUiThread {
+                            loader?.visibility = View.GONE
+                            launchPdfViewer(tempFile.absolutePath, doc.title, doc.id)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("SearchPDF", "Fájl mentési hiba", e)
+                        runOnUiThread {
+                            loader?.visibility = View.GONE
+                            showErrorSnackbar("Hiba a fájl mentésekor") {
+                                downloadPdfAndOpen(doc)
+                            }
+                        }
+                    }
+                }.start()
+            }.onFailure { t ->
                 loader?.visibility = View.GONE
                 Log.e("SearchPDF", "Hiba a letöltéskor", t)
-                Toast.makeText(this@SearchPDF, "Hálózati hiba letöltéskor", Toast.LENGTH_SHORT).show()
+                showErrorSnackbar("Hiba a PDF letöltésekor") {
+                    downloadPdfAndOpen(doc)
+                }
             }
-        })
+        }
     }
 
     private fun launchPdfViewer(path: String, title: String, id: Long) {
@@ -193,97 +270,51 @@ class SearchPDF : AppCompatActivity() {
         startActivity(intent)
     }
 
-    @SuppressLint("SetTextI18n")
     private fun displayCurrentDirectory() {
-        resultContainer?.removeAllViews()
+        val items = mutableListOf<ExplorerItem>()
 
         if (folderStack.isNotEmpty()) {
-            val backBtn = Button(this).apply {
-                text = "<-- Vissza"
-                setOnClickListener {
-                    folderStack.removeAt(folderStack.size - 1)
-                    currentFolderId = folderStack.lastOrNull()?.first
-                    loadCurrentFolderContent()
-                }
-            }
-            styleButton(backBtn)
-            resultContainer?.addView(backBtn)
-        }
-
-        if (currentFolders.isEmpty() && currentDocuments.isEmpty()) {
-            showLoadingMessage("Üres mappa")
-            return
+            items.add(ExplorerItem.Back)
         }
 
         for (folder in currentFolders) {
-            val btn = Button(this).apply {
-                text = "📁 ${folder.name}"
-                setOnClickListener {
-                    folderStack.add(Pair(folder.id, folder.name))
-                    currentFolderId = folder.id
-                    loadCurrentFolderContent()
-                }
-            }
-            styleButton(btn)
-            resultContainer?.addView(btn)
+            items.add(ExplorerItem.FolderItem(folder))
         }
 
         for (doc in currentDocuments) {
-            val btn = Button(this).apply {
-                text = "📄 ${doc.title}"
-                setOnClickListener {
-                    downloadPdfAndOpen(doc)
-                }
+            items.add(ExplorerItem.DocumentItem(doc))
+        }
+
+        if (items.isEmpty() || (items.size == 1 && items.first() is ExplorerItem.Back)) {
+            if (loader?.visibility != View.VISIBLE) {
+                emptyStateTextView?.text = "Üres mappa"
+                emptyStateTextView?.visibility = View.VISIBLE
+            } else {
+                emptyStateTextView?.visibility = View.GONE
             }
-            styleButton(btn)
-            resultContainer?.addView(btn)
+            explorerAdapter.updateItems(items)
+        } else {
+            emptyStateTextView?.visibility = View.GONE
+            explorerAdapter.updateItems(items)
         }
     }
 
     private fun displaySearchResults(docs: List<Document>) {
-        resultContainer?.removeAllViews()
-
         if (docs.isEmpty()) {
-            showLoadingMessage("Nincs a keresésnek megfelelő PDF")
-            return
-        }
-
-        for (doc in docs) {
-            val btn = Button(this).apply {
-                text = "📄 ${doc.title}\n(${doc.fileName})"
-                setOnClickListener {
-                    downloadPdfAndOpen(doc)
-                }
-            }
-            styleButton(btn)
-            resultContainer?.addView(btn)
+            emptyStateTextView?.text = "Nincs a keresésnek megfelelő PDF"
+            emptyStateTextView?.visibility = View.VISIBLE
+            explorerAdapter.updateItems(emptyList())
+        } else {
+            emptyStateTextView?.visibility = View.GONE
+            val items = docs.map { ExplorerItem.DocumentItem(it) }
+            explorerAdapter.updateItems(items)
         }
     }
 
-    private fun showLoadingMessage(message: String) {
-        resultContainer?.removeAllViews()
-        val msg = TextView(this).apply {
-            setPadding(30, 30, 30, 30)
-            textSize = 20f
-            textAlignment = View.TEXT_ALIGNMENT_CENTER
-            setTextColor(resources.getColor(R.color.white, null))
-            text = message
-        }
-        resultContainer?.addView(msg)
-    }
-
-    private fun styleButton(btn: Button) {
-        btn.setPadding(30, 30, 30, 30)
-        btn.layoutParams = LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply {
-            setMargins(0, 0, 0, 30)
-        }
-        btn.textSize = 20f
-        btn.setBackgroundResource(R.drawable.rounded_edittext)
-        btn.textAlignment = View.TEXT_ALIGNMENT_VIEW_START
-        btn.setTextColor(resources.getColor(R.color.white, null))
-        btn.elevation = 1f
+    private fun showErrorSnackbar(message: String, onRetry: () -> Unit) {
+        val mainView = findViewById<View>(R.id.main) ?: return
+        Snackbar.make(mainView, message, Snackbar.LENGTH_INDEFINITE)
+            .setAction("ÚJRA") { onRetry() }
+            .show()
     }
 }

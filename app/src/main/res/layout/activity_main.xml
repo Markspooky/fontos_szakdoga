@@ -12,55 +12,87 @@
         android:id="@+id/main"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="32dp">
+        android:padding="16dp">
 
-        <ImageView
-            android:id="@+id/menubutton"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
-            android:onClick="menuPoint"
-            android:src="@drawable/hamburgerwhite"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <Button
-            android:id="@+id/load_config_button"
-            android:layout_width="wrap_content"
+        <!-- Top Bar Layout for Navigation & Config & Logout -->
+        <LinearLayout
+            android:id="@+id/topBar"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:onClick="selectConfigFromJsonFile"
-            android:text="Konfiguráció kiválasztása"
-            app:layout_constraintStart_toEndOf="@id/menubutton"
-            app:layout_constraintTop_toTopOf="@id/menubutton"
-            android:textColor="@android:color/white"
-            android:textSize="18sp"
-            android:textAllCaps="false"
-            android:letterSpacing="0"
-            app:cornerRadius="16dp"
-            app:backgroundTint="@color/primary"
-            app:rippleColor="@color/primary_dark"
-            app:iconGravity="textStart"
-            app:iconTint="@android:color/white" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:id="@+id/menubutton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:onClick="menuPoint"
+                android:src="@drawable/hamburgerwhite"
+                android:contentDescription="Menü" />
+
+            <Button
+                android:id="@+id/load_config_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:onClick="selectConfigFromJsonFile"
+                android:text="Konfiguráció kiválasztása"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:textAllCaps="false"
+                android:letterSpacing="0"
+                android:singleLine="true"
+                android:ellipsize="end"
+                app:cornerRadius="10dp"
+                app:backgroundTint="@color/primary"
+                app:rippleColor="@color/primary_dark" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/logoutButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="logoutUser"
+                android:text="Kijelentkezés"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:textAllCaps="false"
+                android:letterSpacing="0"
+                app:cornerRadius="10dp"
+                app:backgroundTint="@color/primary"
+                app:rippleColor="@color/primary_dark" />
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/main_buttons_container"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="60dp"
             android:gravity="center_horizontal"
             android:orientation="vertical"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintTop_toBottomOf="@id/topBar">
+
+            <TextView
+                android:id="@+id/userBadgeTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="Bejelentkezve: Kovács Péter (Műszakvezető)"
+                android:textColor="#E0E0E0"
+                android:textSize="16sp"
+                android:textStyle="italic" />
 
             <TextView
                 android:id="@+id/title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="48dp"
+                android:layout_marginBottom="40dp"
                 android:text="Üdvözlünk!"
                 android:textColor="@color/white"
                 android:textSize="36sp"
