@@ -17,7 +17,7 @@
 \
 
 **Készítette:** Nagy Márk  
-**Szak:** Programtervező informatikus BSc  
+**Szak:** Üzemmérnök-informatikus BProf  
 
 **Témavezető:** [Témavezető Neve], [Beosztása]  
 
@@ -244,7 +244,7 @@ A fejlesztett alkalmazás jó alapot biztosít a jövőbeli bővítésekhez, min
 
 Ezúton szeretném kifejezni köszönetemet témavezetőmnek a szakmai útmutatásokért, tanácsokért és a dolgozat elkészítéséhez nyújtott folyamatos segítségért.
 
-Köszönetet mondok továbbá családnak és kollégáimnak a türelemért és a támogatásért a tanulmányaim és a fejlesztés során.
+Külön köszönetet mondok az EPAM-nál dolgozó kollégáimnak és vezetőimnek a támogatásért, a megértésért és a rugalmasságért, akik lehetővé tették, hogy a munka mellett időt szánhassak a szakdolgozat elkészítésére és a fejlesztésre.
 
 ---
 
@@ -252,7 +252,7 @@ Köszönetet mondok továbbá családnak és kollégáimnak a türelemért és a
 
 # Nyilatkozat
 
-Alulírott, Nagy Márk, Programtervező informatikus BSc szakos hallgató, kijelentem, hogy a szakdolgozatban ismertetettek saját munkám eredményei, és minden felhasznált, nem saját munkából származó eredmény esetén hivatkozással jelöltem annak forrását.
+Alulírott, Nagy Márk, Üzemmérnök-informatikus BProf szakos hallgató, kijelentem, hogy a szakdolgozatban ismertetettek saját munkám eredményei, és minden felhasznált, nem saját munkából származó eredmény esetén hivatkozással jelöltem annak forrását.
 
 \
 \
