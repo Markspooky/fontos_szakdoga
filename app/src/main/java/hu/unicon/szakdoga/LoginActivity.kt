@@ -11,12 +11,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
-import hu.unicon.szakdoga.api.ApiClient
 import hu.unicon.szakdoga.api.UserSession
 import hu.unicon.szakdoga.model.User
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import hu.unicon.szakdoga.repository.RepositoryProvider
 
 class LoginActivity : AppCompatActivity() {
 
@@ -50,8 +47,8 @@ class LoginActivity : AppCompatActivity() {
         val btnQuickAdmin = findViewById<MaterialButton>(R.id.btnQuickAdmin)
         val btnLogin = findViewById<MaterialButton>(R.id.btnLogin)
 
-        btnQuickWorker.setOnClickListener { performLogin("worker") }
-        btnQuickMuszi.setOnClickListener { performLogin("muszi") }
+        btnQuickWorker.setOnClickListener { performLogin("dolgozo") }
+        btnQuickMuszi.setOnClickListener { performLogin("muszakvezeto") }
         btnQuickAdmin.setOnClickListener { performLogin("admin") }
 
         btnLogin.setOnClickListener {
@@ -66,35 +63,24 @@ class LoginActivity : AppCompatActivity() {
 
     private fun performLogin(username: String) {
         progressBar?.visibility = View.VISIBLE
-        val apiService = ApiClient.getService(this)
+        val repository = RepositoryProvider.getRepository(this)
 
-        apiService.login(username).enqueue(object : Callback<User> {
-            override fun onResponse(call: Call<User>, response: Response<User>) {
-                progressBar?.visibility = View.GONE
-                if (response.isSuccessful && response.body() != null) {
-                    val user = response.body()!!
-                    saveAndContinue(user)
-                } else {
-                    // Fallback offline login for testing
-                    val fallbackUser = createFallbackUser(username)
-                    saveAndContinue(fallbackUser)
-                }
-            }
-
-            override fun onFailure(call: Call<User>, t: Throwable) {
-                progressBar?.visibility = View.GONE
-                // Fallback offline login
+        repository.login(username) { result ->
+            progressBar?.visibility = View.GONE
+            result.onSuccess { user ->
+                saveAndContinue(user)
+            }.onFailure {
                 val fallbackUser = createFallbackUser(username)
                 saveAndContinue(fallbackUser)
             }
-        })
+        }
     }
 
     private fun createFallbackUser(username: String): User {
         return when (username.lowercase()) {
             "admin" -> User(1L, "admin", "Rendszergazda", "ADMIN")
-            "muszi", "mueszi" -> User(2L, "muszi", "Kovács Péter", "MUSZI")
-            else -> User(3L, "worker", "Szabó János", "WORKER")
+            "muszakvezeto", "muszi", "mueszi" -> User(2L, "muszakvezeto", "Kovács Péter Műszakvezető", "MUSZAKVEZETO")
+            else -> User(3L, "dolgozo", "Szabó János Dolgozó", "DOLGOZO")
         }
     }
 

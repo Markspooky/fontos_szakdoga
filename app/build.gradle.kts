@@ -3,6 +3,7 @@ import io.gitlab.arturbosch.detekt.Detekt
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("kotlin-kapt")
     id("jacoco")
     id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
@@ -71,11 +72,17 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation(libs.core.ktx)
     
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    kapt(libs.room.compiler)
+
     implementation(libs.pdf.viewer)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+    androidTestImplementation(libs.androidx.test.rules)
+    androidTestImplementation(libs.androidx.test.runner)
 }
 
 tasks.register<JacocoReport>("jacocoTestReport") {

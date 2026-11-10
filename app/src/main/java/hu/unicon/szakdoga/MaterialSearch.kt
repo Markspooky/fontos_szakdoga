@@ -18,11 +18,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 import hu.unicon.szakdoga.adapter.MaterialAdapter
-import hu.unicon.szakdoga.api.ApiClient
-import hu.unicon.szakdoga.model.Material
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import hu.unicon.szakdoga.repository.RepositoryProvider
 
 class MaterialSearch : AppCompatActivity() {
     private var searchEditText: EditText? = null
@@ -79,38 +75,27 @@ class MaterialSearch : AppCompatActivity() {
         loader?.visibility = View.VISIBLE
         emptyStateTextView?.visibility = View.GONE
 
-        val apiService = ApiClient.getService(this)
         val searchQuery = if (query.isBlank()) null else query
+        val repository = RepositoryProvider.getRepository(this)
 
-        apiService.getMaterials(searchQuery).enqueue(object : Callback<List<Material>> {
-            override fun onResponse(call: Call<List<Material>>, response: Response<List<Material>>) {
-                loader?.visibility = View.GONE
-                if (response.isSuccessful) {
-                    val materials = response.body() ?: emptyList()
-                    materialAdapter.updateItems(materials)
-
-                    if (materials.isEmpty()) {
-                        emptyStateTextView?.visibility = View.VISIBLE
-                        recyclerView?.visibility = View.GONE
-                    } else {
-                        emptyStateTextView?.visibility = View.GONE
-                        recyclerView?.visibility = View.VISIBLE
-                    }
+        repository.getMaterials(searchQuery) { result ->
+            loader?.visibility = View.GONE
+            result.onSuccess { materials ->
+                materialAdapter.updateItems(materials)
+                if (materials.isEmpty()) {
+                    emptyStateTextView?.visibility = View.VISIBLE
+                    recyclerView?.visibility = View.GONE
                 } else {
-                    showErrorSnackbar("Hiba az adatok lekérésekor") {
-                        fetchMaterialsFromApi(query)
-                    }
+                    emptyStateTextView?.visibility = View.GONE
+                    recyclerView?.visibility = View.VISIBLE
                 }
-            }
-
-            override fun onFailure(call: Call<List<Material>>, t: Throwable) {
-                loader?.visibility = View.GONE
-                Log.e("MaterialSearch", "API hívási hiba", t)
-                showErrorSnackbar("Hálózati hiba történt") {
+            }.onFailure { t ->
+                Log.e("MaterialSearch", "Adatlekérési hiba", t)
+                showErrorSnackbar("Hiba az adatok lekérésekor") {
                     fetchMaterialsFromApi(query)
                 }
             }
-        })
+        }
     }
 
     private fun showErrorSnackbar(message: String, onRetry: () -> Unit) {

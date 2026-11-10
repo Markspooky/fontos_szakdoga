@@ -23,13 +23,9 @@ import com.google.android.material.chip.ChipGroup
 import com.google.android.material.snackbar.Snackbar
 import hu.unicon.szakdoga.adapter.ExplorerAdapter
 import hu.unicon.szakdoga.adapter.ExplorerItem
-import hu.unicon.szakdoga.api.ApiClient
 import hu.unicon.szakdoga.model.Document
 import hu.unicon.szakdoga.model.Folder
-import okhttp3.ResponseBody
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import hu.unicon.szakdoga.repository.RepositoryProvider
 import java.io.File
 import java.io.FileOutputStream
 
@@ -126,7 +122,7 @@ class SearchPDF : AppCompatActivity() {
         displayCurrentDirectory()
         updateBreadcrumbsUI()
 
-        val apiService = ApiClient.getService(this)
+        val repository = RepositoryProvider.getRepository(this)
         val targetFolderId = currentFolderId
 
         var foldersFetched = false
@@ -142,87 +138,57 @@ class SearchPDF : AppCompatActivity() {
         }
 
         // Parallel Request 1: Folders
-        apiService.getFolders(targetFolderId).enqueue(object : Callback<List<Folder>> {
-            override fun onResponse(call: Call<List<Folder>>, response: Response<List<Folder>>) {
-                if (response.isSuccessful) {
-                    currentFolders.clear()
-                    response.body()?.let { currentFolders.addAll(it) }
-                    foldersFetched = true
-                    checkAndDisplay()
-                } else {
-                    if (!hasError) {
-                        hasError = true
-                        loader?.visibility = View.GONE
-                        showErrorSnackbar("Hiba a mappák betöltésekor") { loadCurrentFolderContent() }
-                    }
-                }
-            }
-
-            override fun onFailure(call: Call<List<Folder>>, t: Throwable) {
+        repository.getFolders(targetFolderId) { result ->
+            result.onSuccess { folders ->
+                currentFolders.clear()
+                currentFolders.addAll(folders)
+                foldersFetched = true
+                checkAndDisplay()
+            }.onFailure { t ->
                 if (!hasError) {
                     hasError = true
                     loader?.visibility = View.GONE
                     Log.e("SearchPDF", "Hiba a mappák lekérésekor", t)
-                    showErrorSnackbar("Hálózati hiba történt") { loadCurrentFolderContent() }
+                    showErrorSnackbar("Hiba a mappák betöltésekor") { loadCurrentFolderContent() }
                 }
             }
-        })
+        }
 
         // Parallel Request 2: Documents
-        apiService.getDocuments(targetFolderId).enqueue(object : Callback<List<Document>> {
-            override fun onResponse(call: Call<List<Document>>, response: Response<List<Document>>) {
-                if (response.isSuccessful) {
-                    currentDocuments.clear()
-                    response.body()?.let { currentDocuments.addAll(it) }
-                    docsFetched = true
-                    checkAndDisplay()
-                } else {
-                    if (!hasError) {
-                        hasError = true
-                        loader?.visibility = View.GONE
-                        showErrorSnackbar("Hiba a dokumentumok betöltésekor") { loadCurrentFolderContent() }
-                    }
-                }
-            }
-
-            override fun onFailure(call: Call<List<Document>>, t: Throwable) {
+        repository.getDocuments(targetFolderId) { result ->
+            result.onSuccess { docs ->
+                currentDocuments.clear()
+                currentDocuments.addAll(docs)
+                docsFetched = true
+                checkAndDisplay()
+            }.onFailure { t ->
                 if (!hasError) {
                     hasError = true
                     loader?.visibility = View.GONE
                     Log.e("SearchPDF", "Hiba a dokumentumok lekérésekor", t)
-                    showErrorSnackbar("Hálózati hiba történt") { loadCurrentFolderContent() }
+                    showErrorSnackbar("Hiba a dokumentumok betöltésekor") { loadCurrentFolderContent() }
                 }
             }
-        })
+        }
     }
 
     private fun searchDocumentsInApi(query: String) {
         loader?.visibility = View.VISIBLE
         emptyStateTextView?.visibility = View.GONE
 
-        val apiService = ApiClient.getService(this)
+        val repository = RepositoryProvider.getRepository(this)
 
-        apiService.searchDocuments(query).enqueue(object : Callback<List<Document>> {
-            override fun onResponse(call: Call<List<Document>>, response: Response<List<Document>>) {
-                loader?.visibility = View.GONE
-                if (response.isSuccessful) {
-                    val searchResults = response.body() ?: emptyList()
-                    displaySearchResults(searchResults)
-                } else {
-                    showErrorSnackbar("Hiba a keresés során") {
-                        searchDocumentsInApi(query)
-                    }
-                }
-            }
-
-            override fun onFailure(call: Call<List<Document>>, t: Throwable) {
-                loader?.visibility = View.GONE
+        repository.searchDocuments(query) { result ->
+            loader?.visibility = View.GONE
+            result.onSuccess { searchResults ->
+                displaySearchResults(searchResults)
+            }.onFailure { t ->
                 Log.e("SearchPDF", "Hiba a kereséskor", t)
-                showErrorSnackbar("Hálózati hiba történt") {
+                showErrorSnackbar("Hiba a keresés során") {
                     searchDocumentsInApi(query)
                 }
             }
-        })
+        }
     }
 
     private fun updateBreadcrumbsUI() {
@@ -258,49 +224,40 @@ class SearchPDF : AppCompatActivity() {
 
     private fun downloadPdfAndOpen(doc: Document) {
         loader?.visibility = View.VISIBLE
-        val apiService = ApiClient.getService(this)
+        val repository = RepositoryProvider.getRepository(this)
 
-        apiService.downloadDocument(doc.id).enqueue(object : Callback<ResponseBody> {
-            override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
-                if (response.isSuccessful && response.body() != null) {
-                    Thread {
-                        try {
-                            val tempFile = File(cacheDir, doc.fileName)
-                            response.body()!!.byteStream().use { inputStream ->
-                                FileOutputStream(tempFile).use { outputStream ->
-                                    inputStream.copyTo(outputStream)
-                                }
-                            }
-                            runOnUiThread {
-                                loader?.visibility = View.GONE
-                                launchPdfViewer(tempFile.absolutePath, doc.title, doc.id)
-                            }
-                        } catch (e: Exception) {
-                            Log.e("SearchPDF", "Fájl mentési hiba", e)
-                            runOnUiThread {
-                                loader?.visibility = View.GONE
-                                showErrorSnackbar("Hiba a fájl mentésekor") {
-                                    downloadPdfAndOpen(doc)
-                                }
+        repository.downloadDocument(doc.id) { result ->
+            result.onSuccess { responseBody ->
+                Thread {
+                    try {
+                        val tempFile = File(cacheDir, doc.fileName)
+                        responseBody.byteStream().use { inputStream ->
+                            FileOutputStream(tempFile).use { outputStream ->
+                                inputStream.copyTo(outputStream)
                             }
                         }
-                    }.start()
-                } else {
-                    loader?.visibility = View.GONE
-                    showErrorSnackbar("Hiba a PDF letöltésekor") {
-                        downloadPdfAndOpen(doc)
+                        runOnUiThread {
+                            loader?.visibility = View.GONE
+                            launchPdfViewer(tempFile.absolutePath, doc.title, doc.id)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("SearchPDF", "Fájl mentési hiba", e)
+                        runOnUiThread {
+                            loader?.visibility = View.GONE
+                            showErrorSnackbar("Hiba a fájl mentésekor") {
+                                downloadPdfAndOpen(doc)
+                            }
+                        }
                     }
-                }
-            }
-
-            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                }.start()
+            }.onFailure { t ->
                 loader?.visibility = View.GONE
                 Log.e("SearchPDF", "Hiba a letöltéskor", t)
-                showErrorSnackbar("Hálózati hiba letöltéskor") {
+                showErrorSnackbar("Hiba a PDF letöltésekor") {
                     downloadPdfAndOpen(doc)
                 }
             }
-        })
+        }
     }
 
     private fun launchPdfViewer(path: String, title: String, id: Long) {
